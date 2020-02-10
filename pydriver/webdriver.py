@@ -1,0 +1,2 @@
+class WebDriver:
+    pass
