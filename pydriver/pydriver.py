@@ -11,13 +11,13 @@ from typing import List
 class PyDriver:
     def __init__(self):
         self._session = HTMLSession()
-        self._system_name = platform.system()
+        self._system_name = platform.uname().system.lower()
+        self._system_arch = platform.uname().machine.replace("x86_", "")
         self._drivers_home = PyDriver._get_drivers_home()
         self._driver_os = {"Windows": [], "Darwin": [], "Linux": []}
         self._drivers_url = {
             "chrome": {
                 "url": "http://chromedriver.storage.googleapis.com/index.html",
-                # "version_url": "http://chromedriver.storage.googleapis.com/index.html?path=/",
                 "ignore_files": [
                     "index.html",
                     "notes",
@@ -43,8 +43,8 @@ class PyDriver:
             PyDriver._exit("Env variable 'DRIVERS_HOME' not defined")
         return home
 
-    def _get_url(self, url: str):
-        r = self._session.get(url)
+    def _get_url(self, url: str, stream=False):
+        r = self._session.get(url, stream=stream)
         if r.status_code == 200:
             return r
         else:
@@ -52,7 +52,7 @@ class PyDriver:
 
     def _dl_driver(self, url: str, dst: str) -> None:
         with open(dst, "wb") as f:
-            r = self._get_url(url)
+            r = self._get_url(url, stream=True)
             r.raw.decode_content = True
             shutil.copyfileobj(r.raw, f)
 
@@ -73,6 +73,14 @@ class PyDriver:
         for driver_version in self._filter_server_garbage(drivers):
             print(driver_version[0])
 
+    def _get_chrome_driver(self, version, os_, arch):
+        os_ = os_ or self._system_name
+        arch = arch or self._system_arch
+        file_name = f"chromedriver_{os_}{arch}.zip"
+        url = f"{self._drivers_url['chrome']['url'].replace('index.html', '')}{version}/{file_name}"
+        self._dl_driver(url, os.path.join(self._drivers_home, file_name))
+        print(f"Downloaded {file_name}")
+
     def show_home(self) -> None:
         """Show where DRIVERS_HOME points"""
         print(f"WebDrivers are installed in: {self._drivers_home}")
@@ -89,8 +97,10 @@ class PyDriver:
         if driver_type == "chrome":
             self._list_chrome_drivers()
 
-    def get_driver(self, driver_type: str, version: str) -> None:
-        pass
+    def get_driver(self, driver_type: str, version: str, os_=None, arch=None) -> None:
+        """Download certain version of given WebDriver type"""
+        if driver_type == "chrome":
+            self._get_chrome_driver(version, os_, arch)
 
 
 def main():
