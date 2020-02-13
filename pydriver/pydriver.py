@@ -7,6 +7,7 @@ import fire
 import shutil
 from typing import List, Union
 from packaging.version import parse
+from zipfile import ZipFile
 
 
 class PyDriver:
@@ -109,9 +110,15 @@ class PyDriver:
         os_ = os_ or self._system_name
         arch = arch or self._system_arch
         file_name = f"chromedriver_{os_}{arch}.zip"
+        file_path = os.path.join(self._drivers_home, file_name)
         url = f"{self._drivers_url['chrome']['url'].replace('index.html', '')}{version}/{file_name}"
-        self._dl_driver(url, os.path.join(self._drivers_home, file_name))
+        self._dl_driver(url, file_path)
+        self._unzip_file(file_path, self._drivers_home)
         print(f"Downloaded chromedriver::{version}::{os_}::{arch} from {url}")
+
+    def _unzip_file(self, zipfile: str, target_dir:str) -> None:
+        with  ZipFile(zipfile, 'r') as zip_ref:
+            zip_ref.extractall(target_dir)
 
     def show_home(self) -> None:
         """Show where DRIVERS_HOME points"""
