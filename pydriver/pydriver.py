@@ -5,7 +5,8 @@ import sys
 from requests_html import HTMLSession
 import fire
 import shutil
-from typing import List
+from typing import List, Union
+from packaging.version import parse
 
 
 class PyDriver:
@@ -25,11 +26,26 @@ class PyDriver:
                     "icons",
                     "LATEST_RELEASE",
                 ],
+                "supported_archs": ["32", "64"],
+                "supported_os": ["mac", "win", "linux"],
             },
             "ie": "",
             "gecko": "https://github.com/mozilla/geckodriver/releases/",
             "phantomjs": "",
         }
+
+    @property
+    def system_name(self):
+        return self._system_name
+
+    @system_name.setter
+    def system_name(self, system_name: str):
+        if system_name == "darwin":
+            self._system_name = "mac"
+        elif system_name == "windows":
+            self._system_name = "win"
+        else:
+            self._system_name = "linux"
 
     @staticmethod
     def _exit(message: str) -> None:
@@ -66,26 +82,42 @@ class PyDriver:
             )
         ]
 
-    def _list_chrome_drivers(self):
+    def _list_remote_chrome_drivers(self, print_output: bool = True) -> List[str]:
         r = self._get_url(self._drivers_url["chrome"]["url"])
         r.html.render(sleep=0.5)  # need time to render
         drivers = r.html.xpath("/html/body/table//tr/td[2]/a")
-        for driver_version in self._filter_server_garbage(drivers):
-            print(driver_version[0])
+        drivers_versions = self._filter_server_garbage(drivers)
+        if print_output:
+            for driver_version in drivers_versions:
+                print(driver_version[0])
+        return drivers_versions
 
-    def _get_chrome_driver(self, version, os_, arch):
+    def _get_newest_chrome_version(self) -> str:
+        highest_v = parse("0.0.0.0")
+        versions = self._list_remote_chrome_drivers(print_output=False)
+        for version in versions:
+            v = parse(version[0])
+            if v > highest_v:
+                highest_v = v
+        return str(highest_v)
+
+    def _get_chrome_driver(
+        self, version: Union[str, None], os_: Union[str, None], arch: Union[str, None]
+    ):
+        # TODO: Verify wrong version given
+        version = version or self._get_newest_chrome_version()
         os_ = os_ or self._system_name
         arch = arch or self._system_arch
         file_name = f"chromedriver_{os_}{arch}.zip"
         url = f"{self._drivers_url['chrome']['url'].replace('index.html', '')}{version}/{file_name}"
         self._dl_driver(url, os.path.join(self._drivers_home, file_name))
-        print(f"Downloaded {file_name}")
+        print(f"Downloaded chromedriver::{version}::{os_}::{arch} from {url}")
 
     def show_home(self) -> None:
         """Show where DRIVERS_HOME points"""
         print(f"WebDrivers are installed in: {self._drivers_home}")
 
-    def list_local_drivers(self) -> None:
+    def installed_drivers(self) -> None:
         """List drivers installed at DRIVERS_HOME"""
         if not os.path.isdir(self._drivers_home):
             PyDriver._exit(f"DRIVER_HOME directory does not exist")
@@ -94,10 +126,17 @@ class PyDriver:
         print("\n".join(drivers))
 
     def list_drivers(self, driver_type: str) -> None:
+        """List drivers on remote server"""
         if driver_type == "chrome":
-            self._list_chrome_drivers()
+            self._list_remote_chrome_drivers()
 
-    def get_driver(self, driver_type: str, version: str, os_=None, arch=None) -> None:
+    def get_driver(
+        self,
+        driver_type: str,
+        version: Union[str, None] = None,
+        os_: Union[str, None] = None,
+        arch: Union[str, None] = None,
+    ) -> None:
         """Download certain version of given WebDriver type"""
         if driver_type == "chrome":
             self._get_chrome_driver(version, os_, arch)

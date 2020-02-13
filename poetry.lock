@@ -230,7 +230,7 @@ python-versions = ">=3.5"
 version = "8.2.0"
 
 [[package]]
-category = "dev"
+category = "main"
 description = "Core utilities for Python packages"
 name = "packaging"
 optional = false
@@ -304,7 +304,7 @@ isort = ">=4.2.5,<5"
 mccabe = ">=0.6,<0.7"
 
 [[package]]
-category = "dev"
+category = "main"
 description = "Python parsing module"
 name = "pyparsing"
 optional = false
@@ -520,7 +520,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools"]
 
 [metadata]
-content-hash = "67e50a6f418324e91e6de840e44941cd8650fd06fdd7e57bde7e42152309db68"
+content-hash = "a8e44fbb1c8cf3b158df3c03c96c16b986c8c7d9f8d96fb55dfac2bb4ef2ed79"
 python-versions = "^3.6"
 
 [metadata.files]

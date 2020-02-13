@@ -13,6 +13,7 @@ pydriver = 'pydriver.pydriver:main'
 python = "^3.6"
 fire = "^0.2.1"
 requests-html = "^0.10.0"
+packaging = "^20.1"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
