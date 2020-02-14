@@ -8,14 +8,17 @@ import shutil
 from typing import List, Union
 from packaging.version import parse
 from zipfile import ZipFile
+from pathlib import Path
+import humanfriendly
 
 
 class PyDriver:
     def __init__(self):
+        self._cache_dir = Path.home() / Path(".pydriver_cache")
         self._session = HTMLSession()
         self._system_name = platform.uname().system.lower()
         self._system_arch = platform.uname().machine.replace("x86_", "")
-        self._drivers_home = PyDriver._get_drivers_home()
+        self._drivers_home = Path(PyDriver._get_drivers_home())
         self._driver_os = {"Windows": [], "Darwin": [], "Linux": []}
         self._drivers_url = {
             "chrome": {
@@ -34,6 +37,7 @@ class PyDriver:
             "gecko": "https://github.com/mozilla/geckodriver/releases/",
             "phantomjs": "",
         }
+        self._setup_dirs([self._drivers_home, self._cache_dir])
 
     @property
     def system_name(self):
@@ -47,6 +51,10 @@ class PyDriver:
             self._system_name = "win"
         else:
             self._system_name = "linux"
+
+    def _setup_dirs(self, dirs: List[Path]):
+        for dir_ in dirs:
+            dir_.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
     def _exit(message: str) -> None:
@@ -67,8 +75,8 @@ class PyDriver:
         else:
             PyDriver._exit(f"Cannot download file {url}")
 
-    def _dl_driver(self, url: str, dst: str) -> None:
-        with open(dst, "wb") as f:
+    def _dl_driver(self, url: str, dst: Path) -> None:
+        with open(str(dst), "wb") as f:
             r = self._get_url(url, stream=True)
             r.raw.decode_content = True
             shutil.copyfileobj(r.raw, f)
@@ -85,7 +93,7 @@ class PyDriver:
 
     def _list_remote_chrome_drivers(self, print_output: bool = True) -> List[str]:
         r = self._get_url(self._drivers_url["chrome"]["url"])
-        r.html.render(sleep=0.5)  # need time to render
+        r.html.render(sleep=1)  # need time to render
         drivers = r.html.xpath("/html/body/table//tr/td[2]/a")
         drivers_versions = self._filter_server_garbage(drivers)
         if print_output:
@@ -109,26 +117,37 @@ class PyDriver:
         version = version or self._get_newest_chrome_version()
         os_ = os_ or self._system_name
         arch = arch or self._system_arch
-        file_name = f"chromedriver_{os_}{arch}.zip"
-        file_path = os.path.join(self._drivers_home, file_name)
+        file_name = Path(f"chromedriver_{os_}{arch}.zip")
         url = f"{self._drivers_url['chrome']['url'].replace('index.html', '')}{version}/{file_name}"
-        self._dl_driver(url, file_path)
-        self._unzip_file(file_path, self._drivers_home)
-        print(f"Downloaded chromedriver::{version}::{os_}::{arch} from {url}")
+        cache_dir = self._cache_dir / Path("chrome")/Path(version)
+        self._setup_dirs([cache_dir])
+        self._dl_driver(url, cache_dir / file_name)
+        self._unzip_file(cache_dir / file_name, self._drivers_home)
+        self._update_driver_versions("chrome", version, os_, arch)
+        print(f"Downloaded chromedriver {version}::{os_}::{arch} from {url}")
 
-    def _unzip_file(self, zipfile: str, target_dir:str) -> None:
-        with  ZipFile(zipfile, 'r') as zip_ref:
-            zip_ref.extractall(target_dir)
+    def _unzip_file(self, zipfile: Path, target_dir: Path) -> None:
+        with ZipFile(str(zipfile), "r") as zip_ref:
+            zip_ref.extractall(str(target_dir))
 
-    def show_home(self) -> None:
+    def _calculate_dir_size(self, startdir: Path) -> str:
+        byte_size = sum(f.stat().st_size for f in startdir.glob("**/*") if f.is_file())
+        return humanfriendly.format_size(byte_size)
+
+    def show_env(self) -> None:
         """Show where DRIVERS_HOME points"""
-        print(f"WebDrivers are installed in: {self._drivers_home}")
+        print(
+            f"WebDrivers are installed in: {self._drivers_home}, total size is: {self._calculate_dir_size(self._drivers_home)}"
+        )
+        print(
+            f"PyDriver cache is in: {self._cache_dir}, total size is: {self._calculate_dir_size(self._cache_dir)}"
+        )
 
     def installed_drivers(self) -> None:
         """List drivers installed at DRIVERS_HOME"""
-        if not os.path.isdir(self._drivers_home):
+        if not self._drivers_home.is_dir():
             PyDriver._exit(f"DRIVER_HOME directory does not exist")
-        drivers = os.listdir(self._drivers_home)
+        drivers = [str(p) for p in self._drivers_home.iterdir()]
         print(f"Found {len(drivers)} drivers")
         print("\n".join(drivers))
 
@@ -137,7 +156,7 @@ class PyDriver:
         if driver_type == "chrome":
             self._list_remote_chrome_drivers()
 
-    def get_driver(
+    def install_driver(
         self,
         driver_type: str,
         version: Union[str, None] = None,
