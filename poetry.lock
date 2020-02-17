@@ -127,6 +127,17 @@ version = "0.4.3"
 
 [[package]]
 category = "main"
+description = "Config file reading, writing and validation."
+name = "configobj"
+optional = false
+python-versions = "*"
+version = "5.0.6"
+
+[package.dependencies]
+six = "*"
+
+[[package]]
+category = "main"
 description = "cssselect parses CSS3 Selectors and translates them to XPath 1.0"
 name = "cssselect"
 optional = false
@@ -540,7 +551,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools"]
 
 [metadata]
-content-hash = "b3c220acf777ab401c2711312b2cbf0f3a3dc5eb3d2b54bb5b3316925aacbbf6"
+content-hash = "d1662133540f504a03d5ccb04593c3eb7c3c866bd2b19f02e7d9abaf342015e1"
 python-versions = "^3.6"
 
 [metadata.files]
@@ -587,6 +598,9 @@ click = [
 colorama = [
     {file = "colorama-0.4.3-py2.py3-none-any.whl", hash = "sha256:7d73d2a99753107a36ac6b455ee49046802e59d9d076ef8e47b61499fa29afff"},
     {file = "colorama-0.4.3.tar.gz", hash = "sha256:e96da0d330793e2cb9485e9ddfd918d456036c7149416295932478192f4436a1"},
+]
+configobj = [
+    {file = "configobj-5.0.6.tar.gz", hash = "sha256:a2f5650770e1c87fb335af19a9b7eb73fc05ccf22144eb68db7d00cd2bcb0902"},
 ]
 cssselect = [
     {file = "cssselect-1.1.0-py2.py3-none-any.whl", hash = "sha256:f612ee47b749c877ebae5bb77035d8f4202c6ad0f0fc1271b3c18ad6c4468ecf"},
