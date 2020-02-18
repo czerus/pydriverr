@@ -1,48 +1,53 @@
-import platform
-import os
-import logging
-import sys
-from requests_html import HTMLSession
-import fire
-import shutil
-from typing import List, Union
-from packaging.version import parse
-from zipfile import ZipFile
-from pathlib import Path
-import humanfriendly
-from configobj import ConfigObj
 import hashlib
+import logging
+import os
+import platform
+import re
+import shutil
+import sys
+import xml.etree.ElementTree as ET
+from pathlib import Path
+from typing import List, Union, Tuple
+from zipfile import ZipFile
+
+import fire
+import humanfriendly
+import requests
+from configobj import ConfigObj
+from packaging.version import parse
 
 
 class PyDriver:
+    WIN_EXTENSION = ".exe"
+
     def __init__(self):
         self._drivers_home = Path(PyDriver._get_drivers_home())
         self._drivers_cfg = self._drivers_home / Path("drivers.ini")
         self._drivers_state = ConfigObj(str(self._drivers_cfg))
         self._cache_dir = Path.home() / Path(".pydriver_cache")
-        self._session = HTMLSession()
-        self._system_name = platform.uname().system.lower()
-        self._system_arch = platform.uname().machine.replace("x86_", "")
-        self._driver_os = {"Windows": [], "Darwin": [], "Linux": []}
+        self._session = requests.Session()
+        self.system_name = platform.uname().system
+        self.system_arch = platform.uname().machine
         self._global_config = {
             "chrome": {
-                "url": "http://chromedriver.storage.googleapis.com/index.html",
-                "ignore_files": [
-                    "index.html",
-                    "notes",
-                    "Parent Directory",
-                    "icons",
-                    "LATEST_RELEASE",
-                ],
-                "supported_archs": ["32", "64"],
-                "supported_os": ["mac", "win", "linux"],
+                "url": "https://chromedriver.storage.googleapis.com",
+                "ignore_files": ["index.html", "notes", "Parent Directory", "icons", "LATEST_RELEASE",],
                 "filename": Path("chromedriver"),
             },
             "ie": "",
             "gecko": "https://github.com/mozilla/geckodriver/releases/",
             "phantomjs": "",
         }
+        self._versions_info = {}
         self._setup_dirs([self._drivers_home, self._cache_dir])
+
+    @property
+    def system_arch(self):
+        return self._system_arch
+
+    @system_arch.setter
+    def system_arch(self, system_arch: str):
+        self._system_arch = system_arch.replace("x86_", "").replace("AMD", "")
 
     @property
     def system_name(self):
@@ -50,6 +55,7 @@ class PyDriver:
 
     @system_name.setter
     def system_name(self, system_name: str):
+        system_name = system_name.lower()
         if system_name == "darwin":
             self._system_name = "mac"
         elif system_name == "windows":
@@ -62,9 +68,12 @@ class PyDriver:
             dir_.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
-    def _exit(message: str) -> None:
-        logging.error(message)
-        sys.exit(0)
+    def _exit(messages: Union[List, str]) -> None:
+        if type(messages) == str:
+            messages = [messages]
+        for msg in messages:
+            logging.error(msg)
+        sys.exit(1)
 
     @staticmethod
     def _get_drivers_home() -> str:
@@ -86,42 +95,58 @@ class PyDriver:
             r.raw.decode_content = True
             shutil.copyfileobj(r.raw, f)
 
-    def _filter_server_garbage(self, drivers: List) -> List:
-        # drivers: List[Element] -> List[Element]
-        return [
-            [item.text, item.attrs["href"]]
-            for item in drivers
-            if not item.text.startswith(
-                tuple(self._global_config["chrome"]["ignore_files"])
-            )
-        ]
+    def __def_update_version_dict(self, version: str, os_: str, arch: str) -> None:
+        if version not in self._versions_info:
+            self._versions_info[version] = {os_: [arch]}
+        else:
+            if os_ not in self._versions_info[version]:
+                self._versions_info[version][os_] = [arch]
+            else:
+                self._versions_info[version][os_].append(arch)
 
-    def _list_remote_chrome_drivers(self, print_output: bool = True) -> List[str]:
+    def __parse_version_os_arch(self, version_string: str) -> None:
+        match = re.match(r"(([0-9]+\.){1,3}[0-9]+).*/chromedriver_(linux|win|mac)(32|64)\.zip", version_string,)
+        if match:
+            self.__def_update_version_dict(str(match.group(1)), str(match.group(3)), str(match.group(4)))
+
+    def _get_remote_chrome_drivers_list(self) -> None:
+        # {8.1: {linux: [32, 64]}}
         r = self._get_url(self._global_config["chrome"]["url"])
-        r.html.render(sleep=1)  # need time to render
-        drivers = r.html.xpath("/html/body/table//tr/td[2]/a")
-        drivers_versions = self._filter_server_garbage(drivers)
-        if print_output:
-            for driver_version in drivers_versions:
-                print(driver_version[0])
-        return drivers_versions
+        root = ET.fromstring(r.content)
+        ns = root.tag.replace("ListBucketResult", "")
+        for key in root.iter(f"{ns}Key"):
+            self.__parse_version_os_arch(key.text)
 
     def _get_newest_chrome_version(self) -> str:
         highest_v = parse("0.0.0.0")
-        versions = self._list_remote_chrome_drivers(print_output=False)
-        for version in versions:
-            v = parse(version[0])
+        for version in self._versions_info.keys():
+            v = parse(version)
             if v > highest_v:
                 highest_v = v
         return str(highest_v)
 
-    def _get_chrome_driver(self, version: str, os_: str, arch: str):
-        # TODO: Verify wrong version given
+    def _validate_version_os_arch(self, version: str, os_: str, arch: str) -> Tuple[str, str, str]:
+        errors = []
         version = version or self._get_newest_chrome_version()
-        os_ = os_ or self._system_name
-        arch = arch or self._system_arch
+        os_ = os_ or self.system_name
+        arch = arch or self.system_arch
+        if version not in self._versions_info:
+            errors.append(f"There is no such version: {version}")
+        else:
+            if os_ not in self._versions_info[version]:
+                errors.append(f"There is no such OS {os_} for version: {version}")
+            else:
+                if arch not in self._versions_info[version][os_]:
+                    errors.append(f"There is no such arch {arch} for version {version} and OS: {os_}")
+        if errors:
+            self._exit(errors)
+        return version, os_, arch
+
+    def _get_chrome_driver(self, version: str, os_: str, arch: str) -> None:
+        self._get_remote_chrome_drivers_list()
+        version, os_, arch = self._validate_version_os_arch(version, os_, arch)
         file_name = Path(f"chromedriver_{os_}{arch}.zip")
-        url = f"{self._global_config['chrome']['url'].replace('index.html', '')}{version}/{file_name}"
+        url = f"{self._global_config['chrome']['url']}/{version}/{file_name}"
         version_cache_dir = self._cache_dir / Path("chrome") / Path(version)
         zipfile_path = version_cache_dir / file_name
         self._setup_dirs([version_cache_dir])
@@ -139,39 +164,28 @@ class PyDriver:
 
     def _calculate_checksum(self, filepath: Path) -> str:
         with open(str(filepath), "rb") as f:
-            bytes = f.read()
-            return hashlib.md5(bytes).hexdigest()
+            bytes_ = f.read()
+            return hashlib.md5(bytes_).hexdigest()
 
-    def _update_driver(
-        self, zipfile_path: Path, driver_type: str, os_: str, arch: str, version: str
-    ):
-        driver_location = (
-            self._drivers_home / self._global_config[driver_type]["filename"]
-        )
-        if driver_location.is_file():
-            os.remove(
-                str(self._drivers_home / self._global_config[driver_type]["filename"])
-            )
+    def _update_driver(self, zipfile_path: Path, driver_type: str, os_: str, arch: str, version: str):
+        filename = self._global_config[driver_type]["filename"]
+        if os_ == "win":
+            filename = filename.with_suffix(PyDriver.WIN_EXTENSION)
+        if driver_type in self._drivers_state.sections:
+            old_driver_name = self._drivers_state[driver_type]["FILENAME"]
+            self._delete_driver_files(old_driver_name)
         self._unzip_file(zipfile_path)
-        self._add_driver_to_ini(
-            self._global_config[driver_type]["filename"],
-            driver_type,
-            os_,
-            arch,
-            version,
-        )
+        self._add_driver_to_ini(filename, driver_type, os_, arch, version)
 
     def _read_drivers_from_ini(self):
-        if not self._drivers_cfg.exists():
+        if not self._drivers_cfg.exists() or len(self._drivers_state.sections) == 0:
             self._exit("No drivers installed")
         for driver_type in self._drivers_state.sections:
             print(f"Type: {driver_type:<12}")
             for k, v in self._drivers_state[driver_type].items():
                 print(f"{k:<13}: {v}")
 
-    def _add_driver_to_ini(
-        self, file_name: Path, driver_type: str, os_: str, arch: str, version: str
-    ) -> None:
+    def _add_driver_to_ini(self, file_name: Path, driver_type: str, os_: str, arch: str, version: str) -> None:
         self._drivers_state[driver_type] = {
             "FILENAME": file_name,
             "VERSION": version,
@@ -188,24 +202,27 @@ class PyDriver:
             if driver_type not in self._drivers_state.sections:
                 print(f"Driver: {driver_type}, is not installed")
             else:
+                driver_filename = self._drivers_state[driver_type]["FILENAME"]
                 self._drivers_state.pop(driver_type)
-                self._delete_driver_files(driver_type)
+                self._delete_driver_files(driver_filename)
                 print(f"Driver: {driver_type}, deleted")
             self._drivers_state.write()
 
-    def _delete_driver_files(self, driver_type: str) -> None:
-        os.remove(
-            str(self._drivers_home / self._global_config[driver_type]["filename"])
-        )
+    def _delete_driver_files(self, filename: Path) -> None:
+        os.remove(str(self._drivers_home / filename))
+
+    def _print_drivers(self):
+        for version, v in self._versions_info.items():
+            print(f"{version}:")
+            for os_, arch in v.items():
+                print(f"\t{os_}: {' '.join(arch)}")
 
     def show_env(self) -> None:
         """Show where DRIVERS_HOME points"""
         print(
             f"WebDrivers are installed in: {self._drivers_home}, total size is: {self._calculate_dir_size(self._drivers_home)}"
         )
-        print(
-            f"PyDriver cache is in: {self._cache_dir}, total size is: {self._calculate_dir_size(self._cache_dir)}"
-        )
+        print(f"PyDriver cache is in: {self._cache_dir}, total size is: {self._calculate_dir_size(self._cache_dir)}")
 
     def installed_drivers(self) -> None:
         """List drivers installed at DRIVERS_HOME"""
@@ -216,18 +233,15 @@ class PyDriver:
     def list_drivers(self, driver_type: str) -> None:
         """List drivers on remote server"""
         if driver_type == "chrome":
-            self._list_remote_chrome_drivers()
+            self._get_remote_chrome_drivers_list()
+            self._print_drivers()
 
     def install_driver(
-        self,
-        driver_type: str,
-        version: Union[str, float, int] = "",
-        os_: str = "",
-        arch: str = "",
+        self, driver_type: str, version: Union[str, float, int] = "", os_: str = "", arch: str = "",
     ) -> None:
         """Download certain version of given WebDriver type"""
         if driver_type == "chrome":
-            self._get_chrome_driver(str(version), os_, arch)
+            self._get_chrome_driver(str(version), str(os_), str(arch))
 
     def delete_driver(self, driver_type: str = "") -> None:
         """Remove given driver-type or all installed drivers"""
