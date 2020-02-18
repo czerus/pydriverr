@@ -36,7 +36,7 @@ class PyDriver:
                 ],
                 "supported_archs": ["32", "64"],
                 "supported_os": ["mac", "win", "linux"],
-                "filename": Path("chromedriver")
+                "filename": Path("chromedriver"),
             },
             "ie": "",
             "gecko": "https://github.com/mozilla/geckodriver/releases/",
@@ -115,9 +115,7 @@ class PyDriver:
                 highest_v = v
         return str(highest_v)
 
-    def _get_chrome_driver(
-        self, version: str, os_: str, arch: str
-    ):
+    def _get_chrome_driver(self, version: str, os_: str, arch: str):
         # TODO: Verify wrong version given
         version = version or self._get_newest_chrome_version()
         os_ = os_ or self._system_name
@@ -144,12 +142,24 @@ class PyDriver:
             bytes = f.read()
             return hashlib.md5(bytes).hexdigest()
 
-    def _update_driver(self, zipfile_path: Path, driver_type: str, os_:str, arch:str, version: str):
-        driver_location = self._drivers_home / self._global_config[driver_type]["filename"]
+    def _update_driver(
+        self, zipfile_path: Path, driver_type: str, os_: str, arch: str, version: str
+    ):
+        driver_location = (
+            self._drivers_home / self._global_config[driver_type]["filename"]
+        )
         if driver_location.is_file():
-            os.remove(str(self._drivers_home / self._global_config[driver_type]["filename"]))
+            os.remove(
+                str(self._drivers_home / self._global_config[driver_type]["filename"])
+            )
         self._unzip_file(zipfile_path)
-        self._add_driver_to_ini(self._global_config[driver_type]["filename"], driver_type, os_, arch, version)
+        self._add_driver_to_ini(
+            self._global_config[driver_type]["filename"],
+            driver_type,
+            os_,
+            arch,
+            version,
+        )
 
     def _read_drivers_from_ini(self):
         if not self._drivers_cfg.exists():
@@ -159,7 +169,9 @@ class PyDriver:
             for k, v in self._drivers_state[driver_type].items():
                 print(f"{k:<13}: {v}")
 
-    def _add_driver_to_ini(self, file_name: Path, driver_type: str, os_: str, arch:str, version:str) -> None:
+    def _add_driver_to_ini(
+        self, file_name: Path, driver_type: str, os_: str, arch: str, version: str
+    ) -> None:
         self._drivers_state[driver_type] = {
             "FILENAME": file_name,
             "VERSION": version,
@@ -168,6 +180,23 @@ class PyDriver:
             "CHECKSUM": self._calculate_checksum(self._drivers_home / file_name),
         }
         self._drivers_state.write()
+
+    def _delete_driver_from_ini(self, driver_types: List[str]) -> None:
+        if not self._drivers_cfg.exists():
+            self._exit("No drivers installed")
+        for driver_type in driver_types:
+            if driver_type not in self._drivers_state.sections:
+                print(f"Driver: {driver_type}, is not installed")
+            else:
+                self._drivers_state.pop(driver_type)
+                self._delete_driver_files(driver_type)
+                print(f"Driver: {driver_type}, deleted")
+            self._drivers_state.write()
+
+    def _delete_driver_files(self, driver_type: str) -> None:
+        os.remove(
+            str(self._drivers_home / self._global_config[driver_type]["filename"])
+        )
 
     def show_env(self) -> None:
         """Show where DRIVERS_HOME points"""
@@ -200,7 +229,13 @@ class PyDriver:
         if driver_type == "chrome":
             self._get_chrome_driver(str(version), os_, arch)
 
-
+    def delete_driver(self, driver_type: str = "") -> None:
+        """Remove given driver-type or all installed drivers"""
+        if not driver_type:
+            drivers_to_remove = self._global_config.keys()
+        else:
+            drivers_to_remove = [driver_type]
+        self._delete_driver_from_ini(drivers_to_remove)
 
 
 def main():
