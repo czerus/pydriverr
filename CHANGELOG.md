@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/) and [Keep a Ch
 ---
 
 ### New
+* Add 'delete-driver' command to remove given or all installed drivers
 
 ### Changes
 
