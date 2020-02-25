@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pydriver"
-version = "0.1.0"
+version = "0.2.0"
 description = "Download selenium WebDriver for Windows, Mac & Linux"
 authors = ["Krzysztof Czeronko <krzysztof.czeronko@gmail.com>"]
 readme = "README.md"
