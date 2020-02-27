@@ -22,7 +22,7 @@ class PyDriver:
 
     def __init__(self):
         self._drivers_home = Path(PyDriver._get_drivers_home())
-        self._drivers_cfg = self._drivers_home / Path("drivers.ini")
+        self._drivers_cfg = self._drivers_home / Path(".drivers.ini")
         self._drivers_state = ConfigObj(str(self._drivers_cfg))
         self._cache_dir = Path.home() / Path(".pydriver_cache")
         self._session = requests.Session()
