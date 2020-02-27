@@ -6,6 +6,7 @@ import re
 import shutil
 import sys
 import xml.etree.ElementTree as ET
+from distutils.version import LooseVersion
 from pathlib import Path
 from typing import List, Union, Tuple
 from zipfile import ZipFile
@@ -13,12 +14,13 @@ from zipfile import ZipFile
 import fire
 import humanfriendly
 import requests
+import tabulate
 from configobj import ConfigObj
-from packaging.version import parse
 
 
 class PyDriver:
     WIN_EXTENSION = ".exe"
+    CONFIG_KEYS = ["DRIVER TYPE", "VERSION", "OS", "ARCHITECTURE", "FILENAME", "CHECKSUM"]
 
     def __init__(self):
         self._drivers_home = Path(PyDriver._get_drivers_home())
@@ -117,17 +119,13 @@ class PyDriver:
         for key in root.iter(f"{ns}Key"):
             self.__parse_version_os_arch(key.text)
 
-    def _get_newest_chrome_version(self) -> str:
-        highest_v = parse("0.0.0.0")
-        for version in self._versions_info.keys():
-            v = parse(version)
-            if v > highest_v:
-                highest_v = v
-        return str(highest_v)
+    def _get_newest_version(self) -> str:
+        highest_v = sorted(self._versions_info.keys(), key=LooseVersion)
+        return str(highest_v[-1])
 
     def _validate_version_os_arch(self, version: str, os_: str, arch: str) -> Tuple[str, str, str]:
         errors = []
-        version = version or self._get_newest_chrome_version()
+        version = version or self._get_newest_version()
         os_ = os_ or self.system_name
         arch = arch or self.system_arch
         if version not in self._versions_info:
@@ -177,22 +175,20 @@ class PyDriver:
         self._unzip_file(zipfile_path)
         self._add_driver_to_ini(filename, driver_type, os_, arch, version)
 
-    def _read_drivers_from_ini(self):
+    def _print_drivers_from_ini(self):
         if not self._drivers_cfg.exists() or len(self._drivers_state.sections) == 0:
             self._exit("No drivers installed")
+        values = []
         for driver_type in self._drivers_state.sections:
-            print(f"Type: {driver_type:<12}")
-            for k, v in self._drivers_state[driver_type].items():
-                print(f"{k:<13}: {v}")
+            values.append([driver_type] + [self._drivers_state[driver_type][v] for v in PyDriver.CONFIG_KEYS[1:]])
+        print(tabulate.tabulate(values, headers=PyDriver.CONFIG_KEYS, showindex=True))
 
     def _add_driver_to_ini(self, file_name: Path, driver_type: str, os_: str, arch: str, version: str) -> None:
-        self._drivers_state[driver_type] = {
-            "FILENAME": file_name,
-            "VERSION": version,
-            "OS": os_,
-            "ARCHITECTURE": arch,
-            "CHECKSUM": self._calculate_checksum(self._drivers_home / file_name),
-        }
+        print(PyDriver.CONFIG_KEYS)
+        keys = PyDriver.CONFIG_KEYS[1:]
+        self._drivers_state[driver_type] = dict(
+            zip(keys, [version, os_, arch, file_name, self._calculate_checksum(self._drivers_home / file_name)])
+        )
         self._drivers_state.write()
 
     def _delete_driver_from_ini(self, driver_types: List[str]) -> None:
@@ -211,11 +207,13 @@ class PyDriver:
     def _delete_driver_files(self, filename: Path) -> None:
         os.remove(str(self._drivers_home / filename))
 
-    def _print_drivers(self):
+    def _print_remote_drivers(self):
+        values = []
         for version, v in self._versions_info.items():
-            print(f"{version}:")
             for os_, arch in v.items():
-                print(f"\t{os_}: {' '.join(arch)}")
+                values.append([version, os_, " ".join(arch)])
+        values = sorted(values, key=lambda val: LooseVersion(val[0]))
+        print(tabulate.tabulate(values, headers=PyDriver.CONFIG_KEYS[1:4], showindex=True))
 
     def show_env(self) -> None:
         """Show where DRIVERS_HOME points"""
@@ -228,13 +226,14 @@ class PyDriver:
         """List drivers installed at DRIVERS_HOME"""
         if not self._drivers_home.is_dir():
             PyDriver._exit(f"DRIVER_HOME directory does not exist")
-        self._read_drivers_from_ini()
+        self._print_drivers_from_ini()
 
     def list_drivers(self, driver_type: str) -> None:
         """List drivers on remote server"""
         if driver_type == "chrome":
             self._get_remote_chrome_drivers_list()
-            self._print_drivers()
+            print("Available Chrome drivers:")
+        self._print_remote_drivers()
 
     def install_driver(
         self, driver_type: str, version: Union[str, float, int] = "", os_: str = "", arch: str = "",
