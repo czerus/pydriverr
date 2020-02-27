@@ -16,6 +16,7 @@ packaging = "^20.1"
 humanfriendly = "^6.1"
 configobj = "^5.0.6"
 requests = "^2.23.0"
+tabulate = "^0.8.6"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
