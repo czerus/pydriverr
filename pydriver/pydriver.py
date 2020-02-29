@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import logging.handlers
 import os
 import platform
 import re
@@ -11,6 +12,7 @@ from pathlib import Path
 from typing import List, Union, Tuple
 from zipfile import ZipFile
 
+
 import fire
 import humanfriendly
 import requests
@@ -19,11 +21,15 @@ from configobj import ConfigObj
 
 
 class PyDriver:
+    ENV_NAME = "DRIVERS_HOME"
     WIN_EXTENSION = ".exe"
     CONFIG_KEYS = ["DRIVER TYPE", "VERSION", "OS", "ARCHITECTURE", "FILENAME", "CHECKSUM"]
+    LOG_FILENAME = "pydriver.log"
 
     def __init__(self):
-        self._drivers_home = Path(PyDriver._get_drivers_home())
+        self._pd_logger = self._configure_logging()
+        self._pd_logger.debug("{:=>10}Starting new request{:=>10}".format("", ""))
+        self._drivers_home = Path(self._get_drivers_home())
         self._drivers_cfg = self._drivers_home / Path(".drivers.ini")
         self._drivers_state = ConfigObj(str(self._drivers_cfg))
         self._cache_dir = Path.home() / Path(".pydriver_cache")
@@ -42,6 +48,8 @@ class PyDriver:
         }
         self._versions_info = {}
         self._setup_dirs([self._drivers_home, self._cache_dir])
+        self._pd_logger.debug(f"Identified OS: {self.system_name}")
+        self._pd_logger.debug(f"Identified architecture: {self.system_arch}")
 
     @property
     def system_arch(self):
@@ -65,33 +73,50 @@ class PyDriver:
         else:
             self._system_name = "linux"
 
+    def _configure_logging(self):
+        # Set up a specific logger with our desired output level
+        pd_logger = logging.getLogger("DriverLogger")
+        pd_logger.setLevel(logging.DEBUG)
+        file_handler = logging.handlers.RotatingFileHandler(
+            PyDriver.LOG_FILENAME, maxBytes=1024 * 1024 * 10, backupCount=5
+        )
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        file_handler.setLevel(logging.DEBUG)
+        file_formatter = logging.Formatter("%(asctime)s - %(lineno)s - %(funcName)s - %(levelname)s - %(message)s")
+        file_handler.setFormatter(file_formatter)
+        pd_logger.addHandler(file_handler)
+        pd_logger.addHandler(console_handler)
+        return pd_logger
+
     def _setup_dirs(self, dirs: List[Path]):
         for dir_ in dirs:
             dir_.mkdir(parents=True, exist_ok=True)
 
-    @staticmethod
-    def _exit(messages: Union[List, str]) -> None:
+    def _exit(self, messages: Union[List, str]) -> None:
         if type(messages) == str:
             messages = [messages]
         for msg in messages:
-            logging.error(msg)
+            self._pd_logger.error(msg)
         sys.exit(1)
 
-    @staticmethod
-    def _get_drivers_home() -> str:
-        home = os.environ.get("DRIVERS_HOME")
+    def _get_drivers_home(self) -> str:
+        home = os.environ.get(PyDriver.ENV_NAME)
+        self._pd_logger.debug(f"{PyDriver.ENV_NAME} set to {home}")
         if not home:
-            PyDriver._exit("Env variable 'DRIVERS_HOME' not defined")
+            self._exit("Env variable 'DRIVERS_HOME' not defined")
         return home
 
     def _get_url(self, url: str, stream=False):
+        self._pd_logger.debug(f"Downloading: {url}")
         r = self._session.get(url, stream=stream)
         if r.status_code == 200:
             return r
         else:
-            PyDriver._exit(f"Cannot download file {url}")
+            self._exit(f"Cannot download file {url}")
 
     def _dl_driver(self, url: str, dst: Path) -> None:
+        self._pd_logger.debug(f"Downloading from: {url} to: {dst}")
         with open(str(dst), "wb") as f:
             r = self._get_url(url, stream=True)
             r.raw.decode_content = True
@@ -120,8 +145,9 @@ class PyDriver:
             self.__parse_version_os_arch(key.text)
 
     def _get_newest_version(self) -> str:
-        highest_v = sorted(self._versions_info.keys(), key=LooseVersion)
-        return str(highest_v[-1])
+        highest_v = str(sorted(self._versions_info.keys(), key=LooseVersion)[-1])
+        self._pd_logger.debug(f"Highest version of driver is: {highest_v}")
+        return highest_v
 
     def _validate_version_os_arch(self, version: str, os_: str, arch: str) -> Tuple[str, str, str]:
         errors = []
@@ -141,6 +167,7 @@ class PyDriver:
         return version, os_, arch
 
     def _get_chrome_driver(self, version: str, os_: str, arch: str) -> None:
+        self._pd_logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
         self._get_remote_chrome_drivers_list()
         version, os_, arch = self._validate_version_os_arch(version, os_, arch)
         file_name = Path(f"chromedriver_{os_}{arch}.zip")
@@ -150,11 +177,12 @@ class PyDriver:
         self._setup_dirs([version_cache_dir])
         self._dl_driver(url, zipfile_path)
         self._update_driver(zipfile_path, "chrome", os_, arch, version)
-        print(f"Downloaded chromedriver {version}::{os_}::{arch} from {url}")
+        self._pd_logger.info(f"Downloaded chromedriver {version}::{os_}::{arch} from {url}")
 
     def _unzip_file(self, zipfile: Path) -> None:
         with ZipFile(str(zipfile), "r") as zip_ref:
             zip_ref.extractall(str(self._drivers_home))
+            self._pd_logger.debug(f"Unzipped {zipfile} to {self._drivers_home}")
 
     def _calculate_dir_size(self, startdir: Path) -> str:
         byte_size = sum(f.stat().st_size for f in startdir.glob("**/*") if f.is_file())
@@ -163,7 +191,9 @@ class PyDriver:
     def _calculate_checksum(self, filepath: Path) -> str:
         with open(str(filepath), "rb") as f:
             bytes_ = f.read()
-            return hashlib.md5(bytes_).hexdigest()
+            checksum = hashlib.md5(bytes_).hexdigest()
+            self._pd_logger.debug(f"Checksum of file {filepath}: {checksum}")
+            return checksum
 
     def _update_driver(self, zipfile_path: Path, driver_type: str, os_: str, arch: str, version: str):
         filename = self._global_config[driver_type]["filename"]
@@ -181,31 +211,33 @@ class PyDriver:
         values = []
         for driver_type in self._drivers_state.sections:
             values.append([driver_type] + [self._drivers_state[driver_type][v] for v in PyDriver.CONFIG_KEYS[1:]])
-        print(tabulate.tabulate(values, headers=PyDriver.CONFIG_KEYS, showindex=True))
+        self._pd_logger.info(tabulate.tabulate(values, headers=PyDriver.CONFIG_KEYS, showindex=True))
 
     def _add_driver_to_ini(self, file_name: Path, driver_type: str, os_: str, arch: str, version: str) -> None:
-        print(PyDriver.CONFIG_KEYS)
         keys = PyDriver.CONFIG_KEYS[1:]
         self._drivers_state[driver_type] = dict(
             zip(keys, [version, os_, arch, file_name, self._calculate_checksum(self._drivers_home / file_name)])
         )
         self._drivers_state.write()
+        self._pd_logger.debug(f"Driver {driver_type} added to ini file")
 
     def _delete_driver_from_ini(self, driver_types: List[str]) -> None:
         if not self._drivers_cfg.exists():
             self._exit("No drivers installed")
         for driver_type in driver_types:
             if driver_type not in self._drivers_state.sections:
-                print(f"Driver: {driver_type}, is not installed")
+                self._pd_logger.info(f"Driver: {driver_type}, is not installed")
             else:
                 driver_filename = self._drivers_state[driver_type]["FILENAME"]
                 self._drivers_state.pop(driver_type)
                 self._delete_driver_files(driver_filename)
-                print(f"Driver: {driver_type}, deleted")
+                self._pd_logger.info(f"Driver: {driver_type}, deleted")
+                self._pd_logger.debug(f"Driver {driver_type} deleted from ini file")
             self._drivers_state.write()
 
     def _delete_driver_files(self, filename: Path) -> None:
         os.remove(str(self._drivers_home / filename))
+        self._pd_logger.debug(f"Driver file deleted: {filename}")
 
     def _print_remote_drivers(self):
         values = []
@@ -213,26 +245,28 @@ class PyDriver:
             for os_, arch in v.items():
                 values.append([version, os_, " ".join(arch)])
         values = sorted(values, key=lambda val: LooseVersion(val[0]))
-        print(tabulate.tabulate(values, headers=PyDriver.CONFIG_KEYS[1:4], showindex=True))
+        self._pd_logger.info(tabulate.tabulate(values, headers=PyDriver.CONFIG_KEYS[1:4], showindex=True))
 
     def show_env(self) -> None:
         """Show where DRIVERS_HOME points"""
-        print(
+        self._pd_logger.info(
             f"WebDrivers are installed in: {self._drivers_home}, total size is: {self._calculate_dir_size(self._drivers_home)}"
         )
-        print(f"PyDriver cache is in: {self._cache_dir}, total size is: {self._calculate_dir_size(self._cache_dir)}")
+        self._pd_logger.info(
+            f"PyDriver cache is in: {self._cache_dir}, total size is: {self._calculate_dir_size(self._cache_dir)}"
+        )
 
     def installed_drivers(self) -> None:
         """List drivers installed at DRIVERS_HOME"""
         if not self._drivers_home.is_dir():
-            PyDriver._exit(f"DRIVER_HOME directory does not exist")
+            self._exit(f"DRIVER_HOME directory does not exist")
         self._print_drivers_from_ini()
 
     def list_drivers(self, driver_type: str) -> None:
         """List drivers on remote server"""
         if driver_type == "chrome":
             self._get_remote_chrome_drivers_list()
-            print("Available Chrome drivers:")
+            self._pd_logger.info("Available Chrome drivers:")
         self._print_remote_drivers()
 
     def install_driver(
