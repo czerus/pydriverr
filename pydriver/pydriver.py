@@ -93,12 +93,13 @@ class PyDriver:
         for dir_ in dirs:
             dir_.mkdir(parents=True, exist_ok=True)
 
-    def _exit(self, messages: Union[List, str]) -> None:
-        if type(messages) == str:
-            messages = [messages]
-        for msg in messages:
-            self._pd_logger.error(msg)
-        sys.exit(1)
+    def _exit(self, messages: Union[List, str] = "", exit_code: int = 1) -> None:
+        if messages:
+            if type(messages) == str:
+                messages = [messages]
+            for msg in messages:
+                self._pd_logger.error(msg)
+        sys.exit(exit_code)
 
     def _get_drivers_home(self) -> str:
         home = os.environ.get(PyDriver.ENV_NAME)
@@ -154,6 +155,12 @@ class PyDriver:
         version = version or self._get_newest_version()
         os_ = os_ or self.system_name
         arch = arch or self.system_arch
+        self._pd_logger.debug(f"I will download following version: {version}, OS: {os_}, arch: {arch}")
+        driver = self._drivers_state.get("chrome")
+        if driver:
+            if os_ == driver.get("OS") and arch == driver.get("ARCHITECTURE") and version == driver.get("VERSION"):
+                self._pd_logger.info("Requested driver already installed")
+                self._exit(exit_code=0)
         if version not in self._versions_info:
             errors.append(f"There is no such version: {version}")
         else:
@@ -171,13 +178,17 @@ class PyDriver:
         self._get_remote_chrome_drivers_list()
         version, os_, arch = self._validate_version_os_arch(version, os_, arch)
         file_name = Path(f"chromedriver_{os_}{arch}.zip")
-        url = f"{self._global_config['chrome']['url']}/{version}/{file_name}"
         version_cache_dir = self._cache_dir / Path("chrome") / Path(version)
         zipfile_path = version_cache_dir / file_name
-        self._setup_dirs([version_cache_dir])
-        self._dl_driver(url, zipfile_path)
+        if not (version_cache_dir / file_name).is_file():
+            self._pd_logger.info("Requested driver not found in cache")
+            url = f"{self._global_config['chrome']['url']}/{version}/{file_name}"
+            self._setup_dirs([version_cache_dir])
+            self._dl_driver(url, zipfile_path)
+        else:
+            self._pd_logger.debug("Chromedriver in cache")
         self._update_driver(zipfile_path, "chrome", os_, arch, version)
-        self._pd_logger.info(f"Downloaded chromedriver:\nVERSION: {version}\nOS: {os_}\nARCHITECTURE: {arch}")
+        self._pd_logger.info(f"Installed chromedriver:\nVERSION: {version}\nOS: {os_}\nARCHITECTURE: {arch}")
 
     def _unzip_file(self, zipfile: Path) -> None:
         with ZipFile(str(zipfile), "r") as zip_ref:
