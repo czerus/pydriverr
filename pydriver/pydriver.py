@@ -177,7 +177,7 @@ class PyDriver:
         self._setup_dirs([version_cache_dir])
         self._dl_driver(url, zipfile_path)
         self._update_driver(zipfile_path, "chrome", os_, arch, version)
-        self._pd_logger.info(f"Downloaded chromedriver {version}::{os_}::{arch} from {url}")
+        self._pd_logger.info(f"Downloaded chromedriver:\nVERSION: {version}\nOS: {os_}\nARCHITECTURE: {arch}")
 
     def _unzip_file(self, zipfile: Path) -> None:
         with ZipFile(str(zipfile), "r") as zip_ref:
