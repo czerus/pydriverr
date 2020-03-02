@@ -232,23 +232,29 @@ class PyDriver:
         self._drivers_state.write()
         self._pd_logger.debug(f"Driver {driver_type} added to ini file")
 
-    def _delete_driver_from_ini(self, driver_types: List[str]) -> None:
+    def _delete_driver_from_ini(self, driver_types: Tuple[Tuple[str]]) -> None:
         if not self._drivers_cfg.exists():
             self._exit("No drivers installed")
+        if not driver_types:
+            driver_types = self._drivers_state.sections.copy()
         for driver_type in driver_types:
             if driver_type not in self._drivers_state.sections:
                 self._pd_logger.info(f"Driver: {driver_type}, is not installed")
             else:
                 driver_filename = self._drivers_state[driver_type]["FILENAME"]
                 self._drivers_state.pop(driver_type)
+                self._pd_logger.debug(f"Driver {driver_type} removed from ini.")
                 self._delete_driver_files(driver_filename)
                 self._pd_logger.info(f"Driver: {driver_type}, deleted")
-                self._pd_logger.debug(f"Driver {driver_type} deleted from ini file")
-            self._drivers_state.write()
+                self._drivers_state.write()
 
     def _delete_driver_files(self, filename: Path) -> None:
-        os.remove(str(self._drivers_home / filename))
-        self._pd_logger.debug(f"Driver file deleted: {filename}")
+        filepath = self._drivers_home / filename
+        if filepath.is_file():
+            os.remove(str(filepath))
+            self._pd_logger.debug(f"Driver file deleted: {filename}")
+        else:
+            self._pd_logger.debug(f"Driver file not found: {filename}")
 
     def _print_remote_drivers(self):
         values = []
@@ -287,13 +293,9 @@ class PyDriver:
         if driver_type == "chrome":
             self._get_chrome_driver(str(version), str(os_), str(arch))
 
-    def delete_driver(self, driver_type: str = "") -> None:
+    def delete_driver(self, *driver_type: Tuple[str]) -> None:
         """Remove given driver-type or all installed drivers"""
-        if not driver_type:
-            drivers_to_remove = self._global_config.keys()
-        else:
-            drivers_to_remove = [driver_type]
-        self._delete_driver_from_ini(drivers_to_remove)
+        self._delete_driver_from_ini(driver_type)
 
 
 def main():
