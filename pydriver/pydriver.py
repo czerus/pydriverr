@@ -6,6 +6,7 @@ import platform
 import re
 import shutil
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 from distutils.version import LooseVersion
 from pathlib import Path
@@ -30,7 +31,7 @@ class PyDriver:
         "FILENAME",
         "CHECKSUM",
     ]
-    _LOG_FILENAME = "pydriver.log"
+    _LOG_FILENAME = os.path.join(tempfile.gettempdir(), "pydriver.log")
 
     def __init__(self):
         self._pd_logger = self._configure_logging()
@@ -102,6 +103,7 @@ class PyDriver:
         file_handler.setFormatter(file_formatter)
         pd_logger.addHandler(file_handler)
         pd_logger.addHandler(console_handler)
+        pd_logger.info(f"Log file stored in: {self._LOG_FILENAME}")
         return pd_logger
 
     def _setup_dirs(self, dirs: List[Path]):
@@ -214,7 +216,7 @@ class PyDriver:
             self._pd_logger.debug(f"Unzipped {zipfile} to {self._drivers_home}")
 
     def _calculate_dir_size(self, startdir: Path) -> str:
-        byte_size = sum(f.stat().st_size for f in startdir.glob("**/*") if f.is_file())
+        byte_size = sum(f.lstat().st_size for f in startdir.glob("**/*") if f.is_file() and f not in [".", ".."])
         return humanfriendly.format_size(byte_size)
 
     def _calculate_checksum(self, filepath: Path) -> str:
@@ -273,20 +275,20 @@ class PyDriver:
         self._drivers_state.write()
         self._pd_logger.debug(f"Driver {driver_type} added to ini file")
 
-    def _delete_driver_from_ini(self, driver_types: Tuple[Tuple[str]]) -> None:
+    def _delete_drivers(self, driver_types_to_delete: Tuple[str]) -> None:
         if not self._drivers_cfg.exists():
             self._exit("No drivers installed")
-        if not driver_types:
-            driver_types = self._drivers_state.sections.copy()
-        for driver_type in driver_types:
+        if len(driver_types_to_delete) == 0:
+            driver_types_to_delete = self._drivers_state.sections.copy()
+        for driver_type in driver_types_to_delete:
             if driver_type not in self._drivers_state.sections:
-                self._pd_logger.info(f"Driver: {driver_type}, is not installed")
+                self._pd_logger.info(f"Driver: {driver_type} is not installed")
             else:
                 driver_filename = self._drivers_state[driver_type]["FILENAME"]
                 self._drivers_state.pop(driver_type)
-                self._pd_logger.debug(f"Driver {driver_type} removed from ini.")
+                self._pd_logger.debug(f"Driver {driver_type} removed from ini")
                 self._delete_driver_files(driver_filename)
-                self._pd_logger.info(f"Driver: {driver_type}, deleted")
+                self._pd_logger.info(f"Driver: {driver_type} deleted")
                 self._drivers_state.write()
 
     def _delete_driver_files(self, filename: Path) -> None:
@@ -318,11 +320,13 @@ class PyDriver:
     def installed_drivers(self) -> None:
         """List drivers installed at DRIVERS_HOME"""
         if not self._drivers_home.is_dir():
-            self._exit("DRIVER_HOME directory does not exist")
+            self._exit(f"{self._drivers_home} directory does not exist")
         self._print_drivers_from_ini()
 
     def list_drivers(self, driver_type: str) -> None:
         """List drivers on remote server"""
+        if driver_type not in self._global_config:
+            self._exit(f"Invalid driver type: {driver_type}. Supported types: {', '.join(self._global_config.keys())}")
         if driver_type == "chrome":
             self._get_remote_chrome_drivers_list()
             self._pd_logger.info("Available Chrome drivers:")
@@ -336,12 +340,14 @@ class PyDriver:
         arch: str = "",
     ) -> None:
         """Download certain version of given WebDriver type"""
+        if driver_type not in self._global_config:
+            self._exit(f"Invalid driver type: {driver_type}. Supported types: {', '.join(self._global_config.keys())}")
         if driver_type == "chrome":
             self._get_chrome_driver(str(version), str(os_), str(arch))
 
     def delete_driver(self, *driver_type: Tuple[str]) -> None:
         """Remove given driver-type or all installed drivers"""
-        self._delete_driver_from_ini(driver_type)
+        self._delete_drivers(driver_type)
 
 
 def main():

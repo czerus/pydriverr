@@ -9,6 +9,8 @@ This project adheres to [Semantic Versioning](http://semver.org/) and [Keep a Ch
 ---
 
 ### New
+* Add logging to a file
+* Use cache and list of installed drivers to determine if there is a need for any action
 
 ### Changes
 

@@ -1,0 +1,58 @@
+name: Python pydriver
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Get full python version
+      id: full-python-version
+      run: |
+        echo ::set-output name=version::$(python -c "import sys; print('-'.join(str(v) for v in sys.version_info[:3]))")
+    - name: Install and set up Poetry
+      run: |
+        curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python
+        source $HOME/.poetry/env
+        poetry config virtualenvs.in-project true
+        poetry config virtualenvs.path .venv
+    - name: Set up cache
+      uses: actions/cache@v2
+      with:
+        path: .venv
+        key: venv-${{ runner.os }}-${{ steps.full-python-version.outputs.version }}-${{ hashFiles('**/poetry.lock') }}
+    - name: Install dependencies
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        source $HOME/.poetry/env
+        poetry install
+    - name: Linting
+      run: |
+        source $HOME/.poetry/env
+        poetry run python lint.py
+    - name: Test
+      run: |
+        source $HOME/.poetry/env
+        poetry run pytest tests/ --cov=pydriver --cov-report html --cov-report term
+
+    - name: Build wheel
+      if: github.event.pull_request.merged == true
+      run: |
+        source $HOME/.poetry/env
+        poetry build
+    - name: Upload builded app to artifacts
+      uses: actions/upload-artifact@v2
+      if: github.event.pull_request.merged == true
+      with:
+        name: pydriver_app
+        path: dist/pydriver-.*.whl
