@@ -57,7 +57,13 @@ class PyDriver:
 
     @system_arch.setter
     def system_arch(self, system_arch: str):
-        self._system_arch = system_arch.replace("x86_", "").replace("AMD", "")
+        if system_arch in ["x86_64", "AMD64"]:
+            self._system_arch = "64"
+        elif system_arch in ["i386", "i586", "32", "x86"]:
+            self._system_arch = "32"
+        else:
+            self._exit(f"Unknown architecture: {system_arch}")
+        self._pd_logger.debug(f"Current's OS architecture string: {system_arch} -> {self._system_arch} bit")
 
     @property
     def system_name(self):
@@ -70,8 +76,12 @@ class PyDriver:
             self._system_name = "mac"
         elif system_name == "windows":
             self._system_name = "win"
-        else:
+        elif system_name == "linux":
             self._system_name = "linux"
+        else:
+            self._exit(f"Unknown OS type: {system_name}")
+        self._pd_logger.debug(f"Current's OS type string: {system_name} -> {self._system_name}")
+
 
     def _configure_logging(self):
         # Set up a specific logger with our desired output level
