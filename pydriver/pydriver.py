@@ -21,10 +21,10 @@ from configobj import ConfigObj
 
 
 class PyDriver:
-    ENV_NAME = "DRIVERS_HOME"
-    WIN_EXTENSION = ".exe"
-    CONFIG_KEYS = ["DRIVER TYPE", "VERSION", "OS", "ARCHITECTURE", "FILENAME", "CHECKSUM"]
-    LOG_FILENAME = "pydriver.log"
+    _ENV_NAME = "DRIVERS_HOME"
+    _WIN_EXTENSION = ".exe"
+    _CONFIG_KEYS = ["DRIVER TYPE", "VERSION", "OS", "ARCHITECTURE", "FILENAME", "CHECKSUM"]
+    _LOG_FILENAME = "pydriver.log"
 
     def __init__(self):
         self._pd_logger = self._configure_logging()
@@ -88,7 +88,7 @@ class PyDriver:
         pd_logger = logging.getLogger("DriverLogger")
         pd_logger.setLevel(logging.DEBUG)
         file_handler = logging.handlers.RotatingFileHandler(
-            PyDriver.LOG_FILENAME, maxBytes=1024 * 1024 * 10, backupCount=5
+            PyDriver._LOG_FILENAME, maxBytes=1024 * 1024 * 10, backupCount=5
         )
         console_handler = logging.StreamHandler()
         console_handler.setLevel(logging.INFO)
@@ -112,8 +112,8 @@ class PyDriver:
         sys.exit(exit_code)
 
     def _get_drivers_home(self) -> str:
-        home = os.environ.get(PyDriver.ENV_NAME)
-        self._pd_logger.debug(f"{PyDriver.ENV_NAME} set to {home}")
+        home = os.environ.get(PyDriver._ENV_NAME)
+        self._pd_logger.debug(f"{PyDriver._ENV_NAME} set to {home}")
         if not home:
             self._exit("Env variable 'DRIVERS_HOME' not defined")
         return home
@@ -219,7 +219,7 @@ class PyDriver:
     def _update_driver(self, zipfile_path: Path, driver_type: str, os_: str, arch: str, version: str):
         filename = self._global_config[driver_type]["filename"]
         if os_ == "win":
-            filename = filename.with_suffix(PyDriver.WIN_EXTENSION)
+            filename = filename.with_suffix(PyDriver._WIN_EXTENSION)
         if driver_type in self._drivers_state.sections:
             old_driver_name = self._drivers_state[driver_type]["FILENAME"]
             self._delete_driver_files(old_driver_name)
@@ -231,11 +231,11 @@ class PyDriver:
             self._exit("No drivers installed")
         values = []
         for driver_type in self._drivers_state.sections:
-            values.append([driver_type] + [self._drivers_state[driver_type][v] for v in PyDriver.CONFIG_KEYS[1:]])
-        self._pd_logger.info(tabulate.tabulate(values, headers=PyDriver.CONFIG_KEYS, showindex=True))
+            values.append([driver_type] + [self._drivers_state[driver_type][v] for v in PyDriver._CONFIG_KEYS[1:]])
+        self._pd_logger.info(tabulate.tabulate(values, headers=PyDriver._CONFIG_KEYS, showindex=True))
 
     def _add_driver_to_ini(self, file_name: Path, driver_type: str, os_: str, arch: str, version: str) -> None:
-        keys = PyDriver.CONFIG_KEYS[1:]
+        keys = PyDriver._CONFIG_KEYS[1:]
         self._drivers_state[driver_type] = dict(
             zip(keys, [version, os_, arch, file_name, self._calculate_checksum(self._drivers_home / file_name)])
         )
@@ -272,7 +272,7 @@ class PyDriver:
             for os_, arch in v.items():
                 values.append([version, os_, " ".join(arch)])
         values = sorted(values, key=lambda val: LooseVersion(val[0]))
-        self._pd_logger.info(tabulate.tabulate(values, headers=PyDriver.CONFIG_KEYS[1:4], showindex=True))
+        self._pd_logger.info(tabulate.tabulate(values, headers=PyDriver._CONFIG_KEYS[1:4], showindex=True))
 
     def show_env(self) -> None:
         """Show where DRIVERS_HOME points"""
