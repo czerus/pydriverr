@@ -9,9 +9,8 @@ import sys
 import xml.etree.ElementTree as ET
 from distutils.version import LooseVersion
 from pathlib import Path
-from typing import List, Union, Tuple
+from typing import List, Tuple, Union
 from zipfile import ZipFile
-
 
 import fire
 import humanfriendly
@@ -23,7 +22,14 @@ from configobj import ConfigObj
 class PyDriver:
     _ENV_NAME = "DRIVERS_HOME"
     _WIN_EXTENSION = ".exe"
-    _CONFIG_KEYS = ["DRIVER TYPE", "VERSION", "OS", "ARCHITECTURE", "FILENAME", "CHECKSUM"]
+    _CONFIG_KEYS = [
+        "DRIVER TYPE",
+        "VERSION",
+        "OS",
+        "ARCHITECTURE",
+        "FILENAME",
+        "CHECKSUM",
+    ]
     _LOG_FILENAME = "pydriver.log"
 
     def __init__(self):
@@ -39,7 +45,7 @@ class PyDriver:
         self._global_config = {
             "chrome": {
                 "url": "https://chromedriver.storage.googleapis.com",
-                "ignore_files": ["index.html", "notes", "Parent Directory", "icons", "LATEST_RELEASE",],
+                "ignore_files": ["index.html", "notes", "Parent Directory", "icons", "LATEST_RELEASE"],
                 "filename": Path("chromedriver"),
             },
             "ie": "",
@@ -81,7 +87,6 @@ class PyDriver:
         else:
             self._exit(f"Unknown OS type: {system_name}")
         self._pd_logger.debug(f"Current's OS type string: {system_name} -> {self._system_name}")
-
 
     def _configure_logging(self):
         # Set up a specific logger with our desired output level
@@ -143,7 +148,10 @@ class PyDriver:
                 self._versions_info[version][os_].append(arch)
 
     def __parse_version_os_arch(self, version_string: str) -> None:
-        match = re.match(r"(([0-9]+\.){1,3}[0-9]+).*/chromedriver_(linux|win|mac)(32|64)\.zip", version_string,)
+        match = re.match(
+            r"(([0-9]+\.){1,3}[0-9]+).*/chromedriver_(linux|win|mac)(32|64)\.zip",
+            version_string,
+        )
         if match:
             self.__def_update_version_dict(str(match.group(1)), str(match.group(3)), str(match.group(4)))
 
@@ -216,7 +224,14 @@ class PyDriver:
             self._pd_logger.debug(f"Checksum of file {filepath}: {checksum}")
             return checksum
 
-    def _update_driver(self, zipfile_path: Path, driver_type: str, os_: str, arch: str, version: str):
+    def _update_driver(
+        self,
+        zipfile_path: Path,
+        driver_type: str,
+        os_: str,
+        arch: str,
+        version: str,
+    ):
         filename = self._global_config[driver_type]["filename"]
         if os_ == "win":
             filename = filename.with_suffix(PyDriver._WIN_EXTENSION)
@@ -234,10 +249,26 @@ class PyDriver:
             values.append([driver_type] + [self._drivers_state[driver_type][v] for v in PyDriver._CONFIG_KEYS[1:]])
         self._pd_logger.info(tabulate.tabulate(values, headers=PyDriver._CONFIG_KEYS, showindex=True))
 
-    def _add_driver_to_ini(self, file_name: Path, driver_type: str, os_: str, arch: str, version: str) -> None:
+    def _add_driver_to_ini(
+        self,
+        file_name: Path,
+        driver_type: str,
+        os_: str,
+        arch: str,
+        version: str,
+    ) -> None:
         keys = PyDriver._CONFIG_KEYS[1:]
         self._drivers_state[driver_type] = dict(
-            zip(keys, [version, os_, arch, file_name, self._calculate_checksum(self._drivers_home / file_name)])
+            zip(
+                keys,
+                [
+                    version,
+                    os_,
+                    arch,
+                    file_name,
+                    self._calculate_checksum(self._drivers_home / file_name),
+                ],
+            )
         )
         self._drivers_state.write()
         self._pd_logger.debug(f"Driver {driver_type} added to ini file")
@@ -277,7 +308,8 @@ class PyDriver:
     def show_env(self) -> None:
         """Show where DRIVERS_HOME points"""
         self._pd_logger.info(
-            f"WebDrivers are installed in: {self._drivers_home}, total size is: {self._calculate_dir_size(self._drivers_home)}"
+            f"WebDrivers are installed in: {self._drivers_home}, total size is: "
+            f"{self._calculate_dir_size(self._drivers_home)}"
         )
         self._pd_logger.info(
             f"PyDriver cache is in: {self._cache_dir}, total size is: {self._calculate_dir_size(self._cache_dir)}"
@@ -286,7 +318,7 @@ class PyDriver:
     def installed_drivers(self) -> None:
         """List drivers installed at DRIVERS_HOME"""
         if not self._drivers_home.is_dir():
-            self._exit(f"DRIVER_HOME directory does not exist")
+            self._exit("DRIVER_HOME directory does not exist")
         self._print_drivers_from_ini()
 
     def list_drivers(self, driver_type: str) -> None:
@@ -297,7 +329,11 @@ class PyDriver:
         self._print_remote_drivers()
 
     def install_driver(
-        self, driver_type: str, version: Union[str, float, int] = "", os_: str = "", arch: str = "",
+        self,
+        driver_type: str,
+        version: Union[str, float, int] = "",
+        os_: str = "",
+        arch: str = "",
     ) -> None:
         """Download certain version of given WebDriver type"""
         if driver_type == "chrome":
