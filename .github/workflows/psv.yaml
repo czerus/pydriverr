@@ -3,8 +3,7 @@ name: Pre Submit Verification Pydriver
 on:
   push:
     branches-ignore:
-#      - master
-      - store-artifacts-on-merge
+      - master
 
 jobs:
   build:
