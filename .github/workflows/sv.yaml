@@ -1,6 +1,14 @@
-name: Python pydriver
+name: Submit Verification Pydriver
 
-on: [push]
+#on:
+#  push:
+#    branches:
+#      - master
+
+on:
+  push:
+    branches-ignore:
+      - master
 
 jobs:
   build:
@@ -44,15 +52,12 @@ jobs:
       run: |
         source $HOME/.poetry/env
         poetry run pytest tests/ --cov=pydriver --cov-report html --cov-report term
-
     - name: Build wheel
-      if: github.event.pull_request.merged == true
       run: |
         source $HOME/.poetry/env
         poetry build
     - name: Upload builded app to artifacts
       uses: actions/upload-artifact@v2
-      if: github.event.pull_request.merged == true
       with:
         name: pydriver_app
-        path: dist/pydriver-.*.whl
+        path: dist/pydriver-*.whl
