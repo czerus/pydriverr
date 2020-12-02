@@ -11,11 +11,14 @@
 # Usage
 Installed module provides `pydriver` command which allows to perform following actions:
 * list installed webdrivers
+* list available webdrivers versions
 * install webdrivers
 * remove locally installed webdrivers
+* manage pydriver`s environment
 
-Following webdrivers types are supported:
+Following webdriver types are supported:
 * chrome
+* gecko
 
 
 # Development
@@ -38,5 +41,12 @@ Following webdrivers types are supported:
     # To fix
     $ python lint.py --fix    
     ```
-
+7. Run all tests with coverage:
+   ```bash
+   $ python3 -m pytest \ 
+     tests \
+     --cov=pydriver \
+     --cov-report html \
+     --cov-report term
+   ```
 6. Commit and push
