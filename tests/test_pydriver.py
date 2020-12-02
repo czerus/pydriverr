@@ -1,16 +1,53 @@
+import gzip
+import hashlib
+import json
+import logging
 import os
+import platform
 import shutil
+import tarfile
+import tempfile
 from pathlib import Path
+from typing import Dict
 from zipfile import ZipFile
 
 import pytest
 from configobj import ConfigObj
 
-from pydriver import pydriver
+from pydriver import pydriver, webdriver
+from tests.fixtures import assert_in_log
 
+GECKO_URL = "https://github.com/mozilla/geckodriver"
+GECKO_API_URL = "https://api.github.com/repos/mozilla/geckodriver"
+CHROME_URL = "https://chromedriver.storage.googleapis.com"
 NOT_SUPPORTED = "not_supported"
 PYDRIVER_HOME = "pydriver_home"
-CACHE_DIR = "pydriver_cache"
+CACHE_DIR = ".pydriver_cache"
+EXPECTED_CHROME = """    VERSION       OS     ARCHITECTURE
+--  ------------  -----  --------------
+ 0  2.0           linux  32 64
+ 1  2.0           mac    32
+ 2  2.0           win    32
+ 3  2.1           linux  32 64
+ 4  2.1           mac    32
+ 5  71.0.3578.33  linux  64
+ 6  71.0.3578.33  mac    64
+ 7  71.0.3578.33  win    32"""
+EXPECTED_GECKO = """    VERSION    OS     ARCHITECTURE
+--  ---------  -----  --------------
+ 0  0.4.2      linux  64
+ 1  0.4.2      mac
+ 2  0.4.2      win
+ 3  0.8.0      linux  64
+ 4  0.8.0      mac
+ 5  0.8.0      win    32
+ 6  0.16.1     arm    7hf
+ 7  0.16.1     linux  64
+ 8  0.16.1     mac
+ 9  0.16.1     win    32 64
+10  0.28.0     linux  32 64
+11  0.28.0     mac
+12  0.28.0     win    32 64"""
 DRIVERS_CFG = {
     "chrome": [
         {
@@ -38,10 +75,10 @@ DRIVERS_CFG = {
     ],
     "gecko": [
         {
-            "VERSION": "81.0.4044.20",
+            "VERSION": "0.28.0",
             "OS": "win",
             "ARCHITECTURE": "32",
-            "FILENAME": "gecko.exe",
+            "FILENAME": "geckodriver.exe",
             "CHECKSUM": "56db17c16d7fc9003694a2a01e37dc87",
             "IN_INI": True,
         }
@@ -49,43 +86,59 @@ DRIVERS_CFG = {
 }
 
 
-def create_drivers(tmpdir, file_type=None):
-    for driver_type, driver_list in DRIVERS_CFG.items():
-        tmpdir.join(CACHE_DIR).mkdir(driver_type)
-        for driver in driver_list:
-            version_dir = os.path.join(tmpdir, CACHE_DIR, driver_type, driver["VERSION"])
-            if not os.path.exists(version_dir):
-                os.mkdir(version_dir)
-            unzip_filename = driver["FILENAME"]
-            zip_filename = f"{driver['FILENAME'].replace('.exe', '')}_{driver['OS']}{driver['ARCHITECTURE']}.zip"
-            content = 10 * zip_filename
-            if file_type in ["both", "unzip"] and driver.get("IN_INI"):
-                with open(tmpdir.join(PYDRIVER_HOME, unzip_filename), "w") as f:
-                    f.write(content)
-            if file_type in ["both", "zip"]:
-                with ZipFile(os.path.join(version_dir, zip_filename), "w") as myzip:
-                    myzip.writestr(content, unzip_filename)
+def create_unarc_driver(dst_dir: str, file_name: str) -> str:
+    content = 10 * file_name
+    with open(os.path.join(dst_dir, file_name), "w") as f:
+        f.write(content)
+    return hashlib.md5(content.encode()).hexdigest()
+
+
+def create_arc_driver(tmp_dir, driver_type, arc_file_name, unarc_file_name, cache_dir=None, version=None) -> str:
+    if cache_dir is None:
+        cache_dir = os.path.join(tmp_dir, CACHE_DIR, driver_type, version)
+    dst = os.path.join(cache_dir, arc_file_name)
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir, exist_ok=True)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        calc_hash = create_unarc_driver(tmp, unarc_file_name)
+
+        if arc_file_name.endswith(".tar.gz"):
+            with tarfile.open(dst, "w:gz") as tar:
+                tar.add(unarc_file_name)
+        elif arc_file_name.endswith(".zip"):
+            with ZipFile(dst, "w") as myzip:
+                myzip.write(os.path.join(tmp, unarc_file_name), unarc_file_name)
+        elif arc_file_name.endswith(".gz"):
+            with open(os.path.join(tmp, unarc_file_name), "rb") as f_in:
+                with gzip.open(dst, "wb") as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+    return calc_hash
+
+
+def load_driver_arc_content(tmp_dir, driver_type, arc_file_name, unarc_file_name):
+    calc_hash = create_arc_driver(tmp_dir, driver_type, arc_file_name, unarc_file_name, cache_dir=tmp_dir)
+    arc_driver_path = tmp_dir.join(arc_file_name)
+    with open(arc_driver_path, "rb") as f:
+        content = f.read()
+    return content, calc_hash
+
+
+def get_ini_without_driver(driver_type: str) -> Dict:
+    """Removes from ini driver_type and all keys without IN_INI: True"""
+    new_cfg = {}
+    for key, val in DRIVERS_CFG.items():
+        driver_in_ini = [drv for drv in val if drv.get("IN_INI")][0]
+        if key != driver_type:
+            # Make sure that all values are strings, especially IN_INI
+            new_cfg[key] = {k: str(v) for (k, v) in driver_in_ini.items()}
+    return new_cfg
 
 
 @pytest.fixture
 def test_dirs(tmpdir):
     tmpdir.mkdir(PYDRIVER_HOME)
     tmpdir.mkdir(CACHE_DIR)
-
-
-@pytest.fixture
-def create_unziped(tmpdir):
-    create_drivers(tmpdir, "unzip")
-
-
-@pytest.fixture
-def create_zip(tmpdir):
-    create_drivers(tmpdir, "zip")
-
-
-@pytest.fixture
-def create_both(tmpdir):
-    create_drivers(tmpdir, "both")
 
 
 @pytest.fixture
@@ -107,41 +160,23 @@ def empty_ini(tmpdir):
 
 @pytest.fixture
 def env_vars(monkeypatch, tmpdir):
-    monkeypatch.setenv(pydriver.PyDriver._ENV_NAME, str(tmpdir.join(PYDRIVER_HOME)))
+    monkeypatch.setenv(webdriver.WebDriver._ENV_NAME, str(tmpdir.join(PYDRIVER_HOME)))
+    system = platform.system().lower()
+    if system == "windows":
+        monkeypatch.setenv("USERPROFILE", str(tmpdir))
+    elif system in ["linux", "darwin"]:
+        monkeypatch.setenv("HOME", str(tmpdir))
+    else:
+        raise Exception(f"Unsupported system: {system}")
 
 
-@pytest.fixture
-def load_chrome_xml():
-    path_chrome = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "chrome.xml")
-    with open(path_chrome) as f:
+def load_response(driver_type: str):
+    resource_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", f"{driver_type}.txt")
+    with open(resource_path) as f:
         content = f.read()
+    if driver_type == "gecko":
+        return json.loads(content)
     return content
-
-
-@pytest.fixture
-def load_chrome_driver():
-    path_chrome = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "chromedriver_win32.zip")
-    with open(path_chrome, "rb") as f:
-        content = f.read()
-    return content
-
-
-def copy_chrome_file(dst: Path):
-    src = Path(os.path.dirname(os.path.abspath(__file__)) / Path("resources") / Path("chromedriver_win32.zip"))
-    os.makedirs(dst, exist_ok=True)
-    shutil.copy(src, dst)
-
-
-expected_chrome = """    VERSION       OS     ARCHITECTURE
---  ------------  -----  --------------
- 0  2.0           linux  32 64
- 1  2.0           mac    32
- 2  2.0           win    32
- 3  2.1           linux  32 64
- 4  2.1           mac    32
- 5  71.0.3578.33  linux  64
- 6  71.0.3578.33  mac    64
- 7  71.0.3578.33  win    32"""
 
 
 class PlatformUname:
@@ -150,26 +185,30 @@ class PlatformUname:
         self.machine = machine
 
 
-class TestPyDriverInit:
+class TestWebdriverSystemIdentification:
+    """Use WebDriver class in order to test underlying system identification"""
+
     @pytest.mark.parametrize(
         "user_input,expected",
         [(PlatformUname("Windows"), "win"), (PlatformUname("Darwin"), "mac"), (PlatformUname("Linux"), "linux")],
     )
     def test_system_name(self, user_input, expected, env_vars, caplog, mocker):
-        pydriver.platform = mocker.Mock()
-        pydriver.platform.uname.return_value = user_input
-        pd = pydriver.PyDriver()
-        pydriver.platform.uname.assert_called()
-        assert pd.system_name == expected
+        caplog.set_level(logging.DEBUG)
+        webdriver.platform = mocker.Mock()
+        webdriver.platform.uname.return_value = user_input
+        driver = webdriver.WebDriver()
+        webdriver.platform.uname.assert_called()
+        assert driver.system_name == expected
         assert f"Current's OS type string: {user_input.system.lower()} -> {expected}" in caplog.text
 
     def test_system_name_nok(self, env_vars, caplog, mocker):
-        pydriver.platform = mocker.Mock()
-        pydriver.platform.uname.return_value = PlatformUname(system="nok")
+        caplog.set_level(logging.DEBUG)
+        webdriver.platform = mocker.Mock()
+        webdriver.platform.uname.return_value = PlatformUname(system="nok")
         with pytest.raises(SystemExit) as excinfo:
-            pydriver.PyDriver()
+            webdriver.WebDriver()
         assert str(excinfo.value) == "1"
-        pydriver.platform.uname.assert_called()
+        webdriver.platform.uname.assert_called()
         assert "Unknown OS type: nok" in caplog.text
 
     @pytest.mark.parametrize(
@@ -182,71 +221,73 @@ class TestPyDriverInit:
         ],
     )
     def test_machine(self, user_input, expected, env_vars, caplog, mocker):
-        pydriver.platform = mocker.Mock()
-        pydriver.platform.uname.return_value = user_input
-        pd = pydriver.PyDriver()
-        pydriver.platform.uname.assert_called()
-        assert pd.system_arch == expected
+        caplog.set_level(logging.DEBUG)
+        webdriver.platform = mocker.Mock()
+        webdriver.platform.uname.return_value = user_input
+        driver = webdriver.WebDriver()
+        webdriver.platform.uname.assert_called()
+        assert driver.system_arch == expected
         assert f"Current's OS architecture string: {user_input.machine} -> {expected} bit" in caplog.text
 
     def test_machine_nok(self, env_vars, caplog, mocker):
-        pydriver.platform = mocker.Mock()
-        pydriver.platform.uname.return_value = PlatformUname(machine="nok")
+        caplog.set_level(logging.DEBUG)
+        webdriver.platform = mocker.Mock()
+        webdriver.platform.uname.return_value = PlatformUname(machine="nok")
         with pytest.raises(SystemExit) as excinfo:
-            pydriver.PyDriver()
+            webdriver.WebDriver()
         assert str(excinfo.value) == "1"
-        pydriver.platform.uname.assert_called()
+        webdriver.platform.uname.assert_called()
         assert "Unknown architecture: nok" in caplog.text
 
     def test__get_drivers_home(self, env_vars, tmpdir, caplog, mocker):
-        pydriver.platform = mocker.Mock()
-        pydriver.platform.uname.return_value = PlatformUname()
-        pydriver.PyDriver()
-        assert f"{pydriver.PyDriver._ENV_NAME} set to {tmpdir.join(PYDRIVER_HOME)}" in caplog.text
+        caplog.set_level(logging.DEBUG)
+        webdriver.platform = mocker.Mock()
+        webdriver.platform.uname.return_value = PlatformUname()
+        webdriver.WebDriver()
+        assert f"{webdriver.WebDriver._ENV_NAME} set to {tmpdir.join(PYDRIVER_HOME)}" in caplog.text
 
     def test__get_drivers_home_nok(self, caplog, mocker):
-        pydriver.platform = mocker.Mock()
-        pydriver.platform.uname.return_value = PlatformUname()
+        caplog.set_level(logging.DEBUG)
+        webdriver.platform = mocker.Mock()
+        webdriver.platform.uname.return_value = PlatformUname()
         with pytest.raises(SystemExit) as excinfo:
-            pydriver.PyDriver()
+            webdriver.WebDriver()
         assert str(excinfo.value) == "1"
-        assert f"Env variable '{pydriver.PyDriver._ENV_NAME}' not defined" in caplog.text
+        assert f"Env variable '{webdriver.WebDriver._ENV_NAME}' not defined" in caplog.text
 
     def test_printed_logs(self, env_vars, tmpdir, caplog, mocker):
-        pydriver.platform = mocker.Mock()
-        pydriver.platform.uname.return_value = PlatformUname()
-        pydriver.PyDriver()
-        assert "{:=>10}Starting new request{:=>10}".format("", "") in caplog.text
+        caplog.set_level(logging.DEBUG)
+        webdriver.platform = mocker.Mock()
+        webdriver.platform.uname.return_value = PlatformUname()
+        webdriver.WebDriver()
         assert "Current's OS architecture string: AMD64 -> 64 bit" in caplog.text
         assert "Current's OS type string: windows -> win" in caplog.text
-        assert f"{pydriver.PyDriver._ENV_NAME} set to {tmpdir.join(PYDRIVER_HOME)}" in caplog.text
+        assert f"{webdriver.WebDriver._ENV_NAME} set to {tmpdir.join(PYDRIVER_HOME)}" in caplog.text
         assert "Identified OS: win" in caplog.text
         assert "Identified architecture: 64" in caplog.text
 
 
 class TestShowEnv:
     def test_show_env_empty_empty(self, env_vars, caplog, tmpdir, test_dirs, mocker):
-        pydriver.platform = mocker.Mock()
-        pydriver.platform.uname.return_value = PlatformUname()
+        webdriver.platform = mocker.Mock()
+        webdriver.platform.uname.return_value = PlatformUname()
         pd = pydriver.PyDriver()
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
         pd.show_env()
-        assert f"WebDrivers are installed in: {tmpdir.join(PYDRIVER_HOME)}, total size is: 0 bytes" in caplog.text
-        assert f"PyDriver cache is in: {tmpdir.join(CACHE_DIR)}, total size is: 0 bytes" in caplog.text
+        assert_in_log(
+            caplog.messages, f"WebDrivers are installed in: {tmpdir.join(PYDRIVER_HOME)}, total size is: 0 bytes"
+        )
+        assert_in_log(caplog.messages, f"PyDriver cache is in: {tmpdir.join(CACHE_DIR)}, total size is: 0 bytes")
 
-    def test_show_env_empty_with_files(self, env_vars, caplog, tmpdir, test_dirs, create_ini, create_both, mocker):
+    def test_show_env_empty_with_files(self, env_vars, caplog, tmpdir, test_dirs, create_ini, mocker):
         pydriver.platform = mocker.Mock()
         pydriver.platform.uname.return_value = PlatformUname()
-        mocker.patch("pydriver.pydriver.humanfriendly.format_size").side_effect = ["365 bytes", "1.69 KB"]
+        mocker.patch("pydriver.support.humanfriendly.format_size").side_effect = ["365 bytes", "1.69 KB"]
         pd = pydriver.PyDriver()
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
         pd.show_env()
-        cache_full_path = Path(tmpdir.join(CACHE_DIR))
-        pydriver_home_full_path = Path(tmpdir.join(PYDRIVER_HOME))
-        print("+++++++++++++++++++++++++++++++++++++=")
-        print(caplog.text)
-        assert f"PyDriver cache is in: {cache_full_path}, total size is: 1.69 KB" in caplog.text
-        assert f"WebDrivers are installed in: {pydriver_home_full_path}, total size is: 365 bytes" in caplog.text
+        assert_in_log(caplog.messages, f"PyDriver cache is in: {tmpdir.join(CACHE_DIR)}, total size is: 1.69 KB")
+        assert_in_log(
+            caplog.messages, f"WebDrivers are installed in: {tmpdir.join(PYDRIVER_HOME)}, total size is: 365 bytes"
+        )
 
 
 class TestInstalledDrivers:
@@ -254,133 +295,128 @@ class TestInstalledDrivers:
         pydriver.platform = mocker.Mock()
         pydriver.platform.uname.return_value = PlatformUname()
         pd = pydriver.PyDriver()
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
         with pytest.raises(SystemExit) as excinfo:
-            pd.installed_drivers()
-        assert "No drivers installed" in caplog.text
+            pd.show_installed()
+        assert_in_log(caplog.messages, "No drivers installed")
         assert str(excinfo.value) == "1"
 
-    def test_installed_drivers_driver_home_does_not_exist(self, env_vars, tmpdir, test_dirs, empty_ini, mocker, caplog):
+    def test_installed_drivers_driver_home_does_not_exist(self, env_vars, tmpdir, mocker, caplog):
         pydriver.platform = mocker.Mock()
         pydriver.platform.uname.return_value = PlatformUname()
+        mocker.patch("pydriver.support.Path.mkdir")
         pd = pydriver.PyDriver()
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
-        tmpdir.remove()
         with pytest.raises(SystemExit) as excinfo:
-            pd.installed_drivers()
-        assert f"{tmpdir.join(PYDRIVER_HOME)} directory does not exist" in caplog.text
+            pd.show_installed()
+        assert_in_log(caplog.messages, f"{tmpdir.join(PYDRIVER_HOME)} directory does not exist")
         assert str(excinfo.value) == "1"
 
-    def test_installed_drivers_installed(self, env_vars, tmpdir, test_dirs, create_both, create_ini, caplog, mocker):
+    def test_installed_drivers_installed(self, env_vars, tmpdir, test_dirs, create_ini, caplog, mocker):
         expected = """    DRIVER TYPE    VERSION       OS      ARCHITECTURE  FILENAME          CHECKSUM
 --  -------------  ------------  ----  --------------  ----------------  --------------------------------
  0  chrome         81.0.4044.20  win               32  chromedriver.exe  56db17c16d7fc9003694a2a01e37dc87
- 1  gecko          81.0.4044.20  win               32  gecko.exe         56db17c16d7fc9003694a2a01e37dc87"""
+ 1  gecko          0.28.0        win               32  geckodriver.exe   56db17c16d7fc9003694a2a01e37dc87"""
         pydriver.platform = mocker.Mock()
         pydriver.platform.uname.return_value = PlatformUname()
         pd = pydriver.PyDriver()
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
-        pd.installed_drivers()
-        assert expected in caplog.messages
+        pd.show_installed()
+        assert_in_log(caplog.messages, expected)
 
 
 class TestListDrivers:
     @pytest.mark.parametrize(
-        "driver_type, expected_printout",
+        "driver_type, url, expected_printout, request_kwargs",
         [
-            ("chrome", expected_chrome),
+            (
+                "chrome",
+                "https://chromedriver.storage.googleapis.com",
+                EXPECTED_CHROME,
+                {"text": load_response("chrome")},
+            ),
+            (
+                "gecko",
+                "https://api.github.com/repos/mozilla/geckodriver/releases",
+                EXPECTED_GECKO,
+                {"json": load_response("gecko")},
+            ),
         ],
     )
     def test_list_drivers(
-        self, driver_type, expected_printout, tmpdir, env_vars, caplog, requests_mock, load_chrome_xml
+        self, driver_type, url, expected_printout, request_kwargs, tmpdir, env_vars, caplog, requests_mock
     ):
         pd = pydriver.PyDriver()
-        requests_mock.get(pd._global_config[driver_type]["url"], text=load_chrome_xml)
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
-        pd.list_drivers(driver_type)
-        assert expected_chrome in caplog.messages
+        requests_mock.get(url, **request_kwargs)
+        pd.show_available(driver_type)
+        assert_in_log(caplog.messages, expected_printout)
 
     def test_list_drivers_not_supported_driver(self, env_vars, caplog):
         pd = pydriver.PyDriver()
         with pytest.raises(SystemExit) as excinfo:
-            pd.list_drivers(NOT_SUPPORTED)
-        assert (
-            f"Invalid driver type: not_supported. Supported types: {', '.join(pd._global_config.keys())}"
-            in caplog.messages
-        )
+            pd.show_available(NOT_SUPPORTED)
+        assert_in_log(caplog.messages, f"Invalid driver type: {NOT_SUPPORTED}")
         assert str(excinfo.value) == "1"
 
     def test_list_drivers_network_error(self, env_vars, tmpdir, caplog, requests_mock):
         pd = pydriver.PyDriver()
-        driver_type = list(pd._global_config.keys())[0]
-        driver_url = pd._global_config[driver_type]["url"]
+        driver_url = "https://chromedriver.storage.googleapis.com"
         requests_mock.get(driver_url, status_code=404)
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
         with pytest.raises(SystemExit) as excinfo:
-            pd.list_drivers(driver_type)
-        assert f"Cannot download file {driver_url}" in caplog.messages
+            pd.show_available("chrome")
+        assert_in_log(caplog.messages, f"Cannot download file {driver_url}")
         assert str(excinfo.value) == "1"
 
 
 class TestDeleteDriver:
     def test_delete_driver_no_drivers_installed(self, tmpdir, env_vars, caplog):
         pd = pydriver.PyDriver()
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
         with pytest.raises(SystemExit) as excinfo:
-            pd.delete_driver("driver_type")
-        assert "No drivers installed" in caplog.messages
+            pd.delete("chrome")
+        assert_in_log(caplog.messages, "No drivers installed")
         assert str(excinfo.value) == "1"
 
     def test_delete_driver_driver_not_installed(self, tmpdir, test_dirs, env_vars, caplog, create_ini):
         pd = pydriver.PyDriver()
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
-        pd.delete_driver("not_installed")
-        assert "Driver: not_installed is not installed" in caplog.messages
+        pd.delete(NOT_SUPPORTED)
+        assert_in_log(caplog.messages, f"Driver: {NOT_SUPPORTED} is not installed")
 
-    def test_delete_driver_single_driver(self, tmpdir, test_dirs, env_vars, caplog, create_ini, create_both):
+    @pytest.mark.parametrize(
+        "driver_type, driver_file",
+        [("chrome", "chromedriver.exe"), ("gecko", "geckodriver.exe")],
+    )
+    def test_delete_driver_single_driver(
+        self, driver_type, driver_file, tmpdir, test_dirs, env_vars, caplog, create_ini
+    ):
+        create_unarc_driver(tmpdir.join(PYDRIVER_HOME), driver_file)
         pd = pydriver.PyDriver()
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
-        pd.delete_driver("chrome")
-        assert "Driver chrome removed from ini" in caplog.messages
-        assert "Driver file deleted: chromedriver.exe" in caplog.messages
-        assert "Driver: chrome deleted" in caplog.messages
-        assert dict(pd._drivers_state) == {
-            "gecko": {
-                "VERSION": "81.0.4044.20",
-                "OS": "win",
-                "ARCHITECTURE": "32",
-                "FILENAME": "gecko.exe",
-                "CHECKSUM": "56db17c16d7fc9003694a2a01e37dc87",
-                "IN_INI": "True",
-            }
-        }
+        pd.delete(driver_type)
+        assert_in_log(caplog.messages, f"Driver {driver_type} removed from ini")
+        assert_in_log(caplog.messages, f"Driver file deleted: {driver_file}")
+        assert_in_log(caplog.messages, f"Driver: {driver_type} deleted")
+        assert dict(pd._webdriver._drivers_state) == get_ini_without_driver(driver_type)
 
-    def test_delete_driver_many_drivers(self, tmpdir, test_dirs, env_vars, caplog, create_ini, create_both):
+    def test_delete_driver_many_drivers(self, tmpdir, test_dirs, env_vars, caplog, create_ini):
+        all_drivers = {"chrome": "chromedriver.exe", "gecko": "geckodriver.exe"}
+        for driver_type, driver_file_name in all_drivers.items():
+            create_unarc_driver(tmpdir.join(PYDRIVER_HOME), driver_file_name)
         pd = pydriver.PyDriver()
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
-        pd.delete_driver()
-        assert "Driver chrome removed from ini" in caplog.messages
-        assert "Driver file deleted: chromedriver.exe" in caplog.messages
-        assert "Driver: chrome deleted" in caplog.messages
-
-        assert "Driver gecko removed from ini" in caplog.messages
-        assert "Driver file deleted: gecko.exe" in caplog.messages
-        assert "Driver: gecko deleted" in caplog.messages
-        assert dict(pd._drivers_state) == {}
+        pd.delete()
+        for driver_type, driver_file_name in all_drivers.items():
+            assert_in_log(caplog.messages, f"Driver {driver_type} removed from ini")
+            assert_in_log(caplog.messages, f"Driver file deleted: {driver_file_name}")
+            assert_in_log(caplog.messages, f"Driver: {driver_type} deleted")
+        assert dict(pd._webdriver._drivers_state) == {}
 
     def test_delete_driver_file_does_not_exist(self, tmpdir, test_dirs, env_vars, caplog, create_ini):
         pd = pydriver.PyDriver()
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
-        pd.delete_driver("chrome")
-        assert "Driver chrome removed from ini" in caplog.messages
-        assert "Driver file not found: chromedriver.exe" in caplog.messages
-        assert "Driver: chrome deleted" in caplog.messages
-        assert dict(pd._drivers_state) == {
+        pd.delete("chrome")
+        assert_in_log(caplog.messages, "Driver chrome removed from ini")
+        assert_in_log(caplog.messages, "Driver file not found: chromedriver.exe")
+        assert_in_log(caplog.messages, "Driver: chrome deleted")
+        assert dict(pd._webdriver._drivers_state) == {
             "gecko": {
-                "VERSION": "81.0.4044.20",
+                "VERSION": "0.28.0",
                 "OS": "win",
                 "ARCHITECTURE": "32",
-                "FILENAME": "gecko.exe",
+                "FILENAME": "geckodriver.exe",
                 "CHECKSUM": "56db17c16d7fc9003694a2a01e37dc87",
                 "IN_INI": "True",
             }
@@ -391,116 +427,295 @@ class TestInstallDriver:
     def test_install_driver_not_supported_driver(self, env_vars, caplog):
         pd = pydriver.PyDriver()
         with pytest.raises(SystemExit) as excinfo:
-            pd.install_driver(NOT_SUPPORTED, "71.0.3578.33", "win", "32")
-        assert (
-            f"Invalid driver type: not_supported. Supported types: {', '.join(pd._global_config.keys())}"
-            in caplog.messages
-        )
+            pd.install(NOT_SUPPORTED, "71.0.3578.33", "win", "32")
+        assert_in_log(caplog.messages, f"Invalid driver type: {NOT_SUPPORTED}")
         assert str(excinfo.value) == "1"
 
+    @pytest.mark.parametrize(
+        "driver_type, get_versions_args, get_file_args, version, unarc_file_name, arc_file_name",
+        [
+            (
+                "chrome",
+                {"url": CHROME_URL, "kwargs": {"text": load_response("chrome")}},
+                {"url": f"{CHROME_URL}/" + "{version}/{name}"},
+                "71.0.3578.33",
+                "chromedriver.exe",
+                "chromedriver_win32.zip",
+            ),
+            (
+                "gecko",
+                {"url": f"{GECKO_API_URL}/releases", "kwargs": {"json": load_response("gecko")}},
+                {"url": f"{GECKO_URL}/releases/download/v" + "{version}/{name}"},
+                "0.28.0",
+                "geckodriver.exe",
+                "geckodriver-v0.28.0-win32.zip",
+            ),
+        ],
+    )
     def test_install_driver_newest_version_not_in_cache(
-        self, tmpdir, test_dirs, env_vars, caplog, requests_mock, load_chrome_xml, load_chrome_driver
+        self,
+        driver_type,
+        get_versions_args,
+        get_file_args,
+        version,
+        arc_file_name,
+        unarc_file_name,
+        tmpdir,
+        test_dirs,
+        env_vars,
+        caplog,
+        requests_mock,
     ):
+        requests_mock.get(get_versions_args["url"], **get_versions_args["kwargs"])
+        content, calc_hash = load_driver_arc_content(tmpdir, driver_type, arc_file_name, unarc_file_name)
+        requests_mock.get(get_file_args["url"].format(version=version, name=arc_file_name), content=content)
         pd = pydriver.PyDriver()
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
-        chrome_url = pd._global_config["chrome"]["url"]
-        requests_mock.get(chrome_url, text=load_chrome_xml)
-        requests_mock.get(f"{chrome_url}/71.0.3578.33/chromedriver_win32.zip", content=load_chrome_driver)
-        pd.install_driver("chrome", "", "win", "32")
-        assert "Requested version: , OS: win, arch: 32" in caplog.messages
-        assert "Highest version of driver is: 71.0.3578.33" in caplog.messages
-        assert "Requested driver not found in cache" in caplog.messages
-        assert "I will download following version: 71.0.3578.33, OS: win, arch: 32" in caplog.messages
-        assert "Installed chromedriver:\nVERSION: 71.0.3578.33\nOS: win\nARCHITECTURE: 32" in caplog.messages
-        assert dict(pd._drivers_state) == {
-            "chrome": {
-                "VERSION": "71.0.3578.33",
+        pd.install(driver_type, "", "win", "32")
+        assert_in_log(caplog.messages, "Requested version: , OS: win, arch: 32")
+        assert_in_log(caplog.messages, f"Highest version of driver is: {version}")
+        assert_in_log(caplog.messages, "Requested driver not found in cache")
+        assert_in_log(caplog.messages, f"I will download following version: {version}, OS: win, arch: 32")
+        assert_in_log(caplog.messages, f"Installed {driver_type}driver:\nVERSION: {version}\nOS: win\nARCHITECTURE: 32")
+        assert dict(pd._custom_driver_obj.webdriver._drivers_state) == {
+            driver_type: {
+                "VERSION": version,
                 "OS": "win",
                 "ARCHITECTURE": "32",
-                "FILENAME": Path("chromedriver.exe"),
-                "CHECKSUM": "64a8343fcd1ea08cf017bf5989e9ae19",
+                "FILENAME": Path(unarc_file_name),
+                "CHECKSUM": calc_hash,
             }
         }
 
-    def test_install_driver_invalid_os(self, tmpdir, test_dirs, env_vars, caplog, requests_mock, load_chrome_xml):
-        pd = pydriver.PyDriver()
-        requests_mock.get(pd._global_config["chrome"]["url"], text=load_chrome_xml)
-        with pytest.raises(SystemExit) as excinfo:
-            pd.install_driver("chrome", "71.0.3578.33", "Koko", "32")
-        assert "There is no such OS Koko for version: 71.0.3578.33"
-        assert str(excinfo.value) == "1"
-
-    def test_install_driver_invalid_version(self, tmpdir, test_dirs, env_vars, caplog, requests_mock, load_chrome_xml):
-        pd = pydriver.PyDriver()
-        requests_mock.get(pd._global_config["chrome"]["url"], text=load_chrome_xml)
-        with pytest.raises(SystemExit) as excinfo:
-            pd.install_driver("chrome", "1.1.1", "win", "32")
-        assert "There is no such version: 1.1.1"
-        assert str(excinfo.value) == "1"
-
-    def test_install_driver_invalid_arch(self, tmpdir, test_dirs, env_vars, caplog, requests_mock, load_chrome_xml):
-        pd = pydriver.PyDriver()
-        requests_mock.get(pd._global_config["chrome"]["url"], text=load_chrome_xml)
-        with pytest.raises(SystemExit) as excinfo:
-            pd.install_driver("chrome", "71.0.3578.33", "win", "i586")
-        assert "There is no such arch i586 for version 71.0.3578.33 and OS: win"
-        assert str(excinfo.value) == "1"
-
-    def test_install_driver_already_installed(
-        self, tmpdir, test_dirs, env_vars, caplog, create_ini, requests_mock, load_chrome_xml
+    @pytest.mark.parametrize(
+        "driver_type, request_urls, version",
+        [
+            ("chrome", {CHROME_URL: {"text": load_response("chrome")}}, "71.0.3578.33"),
+            ("gecko", {GECKO_API_URL + "/releases": {"json": load_response("gecko")}}, "0.28.0"),
+        ],
+    )
+    def test_install_driver_invalid_os(
+        self, driver_type, request_urls, version, tmpdir, test_dirs, env_vars, caplog, requests_mock
     ):
         pd = pydriver.PyDriver()
-        requests_mock.get(pd._global_config["chrome"]["url"], text=load_chrome_xml)
+        for url, request_kwargs in request_urls.items():
+            requests_mock.get(url, **request_kwargs)
         with pytest.raises(SystemExit) as excinfo:
-            pd.install_driver("chrome", "81.0.4044.20", "win", "32")
-        assert "Requested driver already installed" in caplog.messages
+            pd.install(driver_type, version, NOT_SUPPORTED, "32")
+        assert_in_log(caplog.messages, f"There is no such OS {NOT_SUPPORTED} for version: {version}")
+        assert str(excinfo.value) == "1"
+
+    @pytest.mark.parametrize(
+        "driver_type, request_urls, version",
+        [
+            ("chrome", {CHROME_URL: {"text": load_response("chrome")}}, "1.1.1.1"),
+            ("gecko", {GECKO_API_URL + "/releases": {"json": load_response("gecko")}}, "1.1.1.1"),
+        ],
+    )
+    def test_install_driver_invalid_version(
+        self, driver_type, request_urls, version, tmpdir, test_dirs, env_vars, caplog, requests_mock
+    ):
+        pd = pydriver.PyDriver()
+        for url, request_kwargs in request_urls.items():
+            requests_mock.get(url, **request_kwargs)
+        with pytest.raises(SystemExit) as excinfo:
+            pd.install(driver_type, version, "win", "32")
+        assert_in_log(caplog.messages, f"There is no such version: {version}")
+        assert str(excinfo.value) == "1"
+
+    @pytest.mark.parametrize(
+        "driver_type, request_urls, version",
+        [
+            ("chrome", {CHROME_URL: {"text": load_response("chrome")}}, "71.0.3578.33"),
+            ("gecko", {GECKO_API_URL + "/releases": {"json": load_response("gecko")}}, "0.28.0"),
+        ],
+    )
+    def test_install_driver_invalid_arch(
+        self, driver_type, request_urls, version, tmpdir, test_dirs, env_vars, caplog, requests_mock
+    ):
+        pd = pydriver.PyDriver()
+        for url, request_kwargs in request_urls.items():
+            requests_mock.get(url, **request_kwargs)
+        with pytest.raises(SystemExit) as excinfo:
+            pd.install(driver_type, version, "win", NOT_SUPPORTED)
+        assert_in_log(caplog.messages, f"There is no such arch {NOT_SUPPORTED} for version {version} and OS: win")
+        assert str(excinfo.value) == "1"
+
+    @pytest.mark.parametrize(
+        "driver_type, request_urls, version",
+        [
+            ("chrome", {CHROME_URL: {"text": load_response("chrome")}}, "81.0.4044.20"),
+            ("gecko", {GECKO_API_URL + "/releases": {"json": load_response("gecko")}}, "0.28.0"),
+        ],
+    )
+    def test_install_driver_already_installed(
+        self, driver_type, request_urls, version, tmpdir, test_dirs, env_vars, caplog, create_ini, requests_mock
+    ):
+        pd = pydriver.PyDriver()
+        for url, request_kwargs in request_urls.items():
+            requests_mock.get(url, **request_kwargs)
+        with pytest.raises(SystemExit) as excinfo:
+            pd.install(driver_type, version, "win", "32")
+        assert_in_log(caplog.messages, "Requested driver already installed")
         assert str(excinfo.value) == "0"
 
+    @pytest.mark.parametrize(
+        "driver_type, unarc_filename, arc_file_name, get_versions_args, get_file_args, version, os_, arch",
+        [
+            (
+                "chrome",
+                "chromedriver",
+                "chromedriver_linux64.zip",
+                {"url": CHROME_URL, "kwargs": {"text": load_response("chrome")}},
+                {"url": f"{CHROME_URL}/" + "{version}/{name}"},
+                "71.0.3578.33",
+                "linux",
+                "64",
+            ),
+            (
+                "chrome",
+                "chromedriver",
+                "chromedriver_mac64.zip",
+                {"url": CHROME_URL, "kwargs": {"text": load_response("chrome")}},
+                {"url": f"{CHROME_URL}/" + "{version}/{name}"},
+                "71.0.3578.33",
+                "mac",
+                "64",
+            ),
+            (
+                "gecko",
+                "geckodriver.exe",
+                "geckodriver-v0.16.1-win64.zip",
+                {"url": GECKO_API_URL + "/releases", "kwargs": {"json": load_response("gecko")}},
+                {"url": f"{GECKO_URL}/releases/download/v" + "{version}/{name}"},
+                "0.16.1",
+                "win",
+                "64",
+            ),
+            (
+                "gecko",
+                "wires-0.4.2-osx",
+                "wires-0.4.2-osx.gz",
+                {"url": GECKO_API_URL + "/releases", "kwargs": {"json": load_response("gecko")}},
+                {"url": f"{GECKO_URL}/releases/download/v" + "{version}/{name}"},
+                "0.4.2",
+                "mac",
+                "",
+            ),
+        ],
+    )
     def test_install_driver_replace_driver(
-        self, tmpdir, test_dirs, env_vars, caplog, create_ini, requests_mock, load_chrome_xml
+        self,
+        driver_type,
+        unarc_filename,
+        arc_file_name,
+        get_versions_args,
+        get_file_args,
+        version,
+        os_,
+        arch,
+        tmpdir,
+        test_dirs,
+        env_vars,
+        caplog,
+        create_ini,
+        requests_mock,
     ):
+        content, calc_hash = load_driver_arc_content(tmpdir, driver_type, arc_file_name, unarc_filename)
+        create_unarc_driver(tmpdir.join(PYDRIVER_HOME), unarc_filename)
+        requests_mock.get(get_versions_args["url"], **get_versions_args["kwargs"])
+        requests_mock.get(get_file_args["url"].format(version=version, name=arc_file_name), content=content)
         pd = pydriver.PyDriver()
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
-        chrome_url = pd._global_config["chrome"]["url"]
-        requests_mock.get(chrome_url, text=load_chrome_xml)
-        copy_chrome_file(pd._cache_dir / Path("chrome") / Path("2.0"))
-        pd.install_driver("chrome", "2.0", "win", "32")
-        assert "Requested version: 2.0, OS: win, arch: 32" in caplog.messages
-        assert "Installed chromedriver:\nVERSION: 2.0\nOS: win\nARCHITECTURE: 32" in caplog.messages
-        assert dict(pd._drivers_state) == {
-            "chrome": {
-                "VERSION": "2.0",
-                "OS": "win",
-                "ARCHITECTURE": "32",
-                "FILENAME": Path("chromedriver.exe"),
-                "CHECKSUM": "64a8343fcd1ea08cf017bf5989e9ae19",
-            },
-            "gecko": {
-                "ARCHITECTURE": "32",
-                "CHECKSUM": "56db17c16d7fc9003694a2a01e37dc87",
-                "FILENAME": "gecko.exe",
-                "IN_INI": "True",
-                "OS": "win",
-                "VERSION": "81.0.4044.20",
-            },
+        pd.install(driver_type, version, os_, arch)
+        assert_in_log(caplog.messages, f"Requested version: {version}, OS: {os_}, arch: {arch}")
+        assert_in_log(
+            caplog.messages, f"Installed {driver_type}driver:\nVERSION: {version}\nOS: {os_}\nARCHITECTURE: {arch}"
+        )
+        assert dict(pd._custom_driver_obj.webdriver._drivers_state[driver_type]) == {
+            "VERSION": version,
+            "OS": os_,
+            "ARCHITECTURE": arch,
+            "FILENAME": Path(unarc_filename),
+            "CHECKSUM": calc_hash,
         }
 
-    def test_install_driver_in_cache(self, tmpdir, test_dirs, env_vars, caplog, requests_mock, load_chrome_xml):
+    @pytest.mark.parametrize(
+        "driver_type, unarc_filename, arc_file_name, request_urls, version, os_, arch",
+        [
+            (
+                "chrome",
+                "chromedriver",
+                "chromedriver_linux64.zip",
+                {"url": CHROME_URL, "kwargs": {"text": load_response("chrome")}},
+                "71.0.3578.33",
+                "linux",
+                "64",
+            ),
+            (
+                "chrome",
+                "chromedriver",
+                "chromedriver_mac64.zip",
+                {"url": CHROME_URL, "kwargs": {"text": load_response("chrome")}},
+                "71.0.3578.33",
+                "mac",
+                "64",
+            ),
+            (
+                "gecko",
+                "geckodriver.exe",
+                "geckodriver-v0.28.0-win64.zip",
+                {"url": GECKO_API_URL + "/releases", "kwargs": {"json": load_response("gecko")}},
+                "0.28.0",
+                "win",
+                "64",
+            ),
+            (
+                "gecko",
+                "wires-0.4.2-osx",
+                "wires-0.4.2-osx.gz",
+                {"url": GECKO_API_URL + "/releases", "kwargs": {"json": load_response("gecko")}},
+                "0.4.2",
+                "mac",
+                "",
+            ),
+        ],
+    )
+    def test_install_driver_from_cache(
+        self,
+        driver_type,
+        unarc_filename,
+        arc_file_name,
+        request_urls,
+        version,
+        os_,
+        arch,
+        tmpdir,
+        test_dirs,
+        env_vars,
+        caplog,
+        requests_mock,
+    ):
         pd = pydriver.PyDriver()
-        pd._cache_dir = Path(tmpdir.join(CACHE_DIR))
-        chrome_url = pd._global_config["chrome"]["url"]
-        requests_mock.get(chrome_url, text=load_chrome_xml)
-        copy_chrome_file(pd._cache_dir / Path("chrome") / Path("2.0"))
-        pd.install_driver("chrome", "2.0", "win", "32")
-        assert "Requested version: 2.0, OS: win, arch: 32" in caplog.messages
-        assert "Chromedriver in cache" in caplog.messages
-        assert "Installed chromedriver:\nVERSION: 2.0\nOS: win\nARCHITECTURE: 32" in caplog.messages
-        assert dict(pd._drivers_state) == {
-            "chrome": {
-                "VERSION": "2.0",
-                "OS": "win",
-                "ARCHITECTURE": "32",
-                "FILENAME": Path("chromedriver.exe"),
-                "CHECKSUM": "64a8343fcd1ea08cf017bf5989e9ae19",
+        requests_mock.get(request_urls["url"], **request_urls["kwargs"])
+        calc_hash = create_arc_driver(tmpdir, driver_type, arc_file_name, unarc_filename, version=version)
+        pd.install(driver_type, version, os_, arch)
+        assert_in_log(caplog.messages, f"Requested version: {version}, OS: {os_}, arch: {arch}")
+        assert_in_log(caplog.messages, f"{driver_type}driver in cache")
+        assert_in_log(
+            caplog.messages, f"Installed {driver_type}driver:\nVERSION: {version}\nOS: {os_}\nARCHITECTURE: {arch}"
+        )
+        assert dict(pd._custom_driver_obj.webdriver._drivers_state) == {
+            driver_type: {
+                "VERSION": version,
+                "OS": os_,
+                "ARCHITECTURE": arch,
+                "FILENAME": Path(f"{unarc_filename}"),
+                "CHECKSUM": calc_hash,
             }
         }
+
+
+class TestClearCache:
+    def test_clear_cache(self, env_vars, caplog, test_dirs, tmpdir):
+        pd = pydriver.PyDriver()
+        pd.clear_cache()
+        assert_in_log(caplog.messages, f"Removing cache directory: {tmpdir.join(CACHE_DIR)}")
