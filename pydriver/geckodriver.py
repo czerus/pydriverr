@@ -2,6 +2,7 @@ import logging
 import re
 from typing import Dict
 
+from pydriver.config import WebDriverType, pydriver_config
 from pydriver.githubapi import GithubApi
 from pydriver.support import Support
 from pydriver.webdriver import WebDriver
@@ -38,8 +39,10 @@ class GeckoDriver:
     def get_driver(self, version: str, os_: str, arch: str) -> None:
         self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
         self.get_remote_drivers_list()
-        version, os_, arch, file_name = self.webdriver.validate_version_os_arch("gecko", version, os_, arch)
-        url = self.webdriver.global_config["gecko"]["url"].format(owner=self.__OWNER, repo=self.__REPO)
+        version, os_, arch, file_name = self.webdriver.validate_version_os_arch(
+            WebDriverType.GECKO.value, version, os_, arch
+        )
+        url = pydriver_config[WebDriverType.GECKO]["url"].format(owner=self.__OWNER, repo=self.__REPO)
         url = url + f"/releases/download/v{version}/{file_name}"
         self.webdriver.get_driver("gecko", url, version, os_, arch, file_name)
 
