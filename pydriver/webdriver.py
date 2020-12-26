@@ -37,16 +37,6 @@ class WebDriver:
         self.cache_dir = Path.home() / Path(".pydriver_cache")
         self.system_name = platform.uname().system
         self.system_arch = platform.uname().machine
-        self.global_config = {
-            "chrome": {
-                "url": "https://chromedriver.storage.googleapis.com",
-                "ignore_files": ["index.html", "notes", "Parent Directory", "icons", "LATEST_RELEASE"],
-            },
-            "gecko": {
-                "api_url": "https://api.github.com/repos/{owner}/{repo}",
-                "url": "https://github.com/{owner}/{repo}",
-            },
-        }
         self._versions_info = {}
         self._support.setup_dirs([self.drivers_home, self.cache_dir])
         self._logger.debug(f"Identified OS: {self.system_name}")
