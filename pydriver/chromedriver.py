@@ -1,6 +1,7 @@
 import logging
 import re
 import xml.etree.ElementTree as ET
+from distutils.version import LooseVersion
 
 from pydriver.config import WebDriverType, pydriver_config
 from pydriver.downloader import Downloader
@@ -41,3 +42,26 @@ class ChromeDriver:
         ns = root.tag.replace("ListBucketResult", "")
         for key in root.iter(f"{ns}Key"):
             self._parse_version_os_arch(key.text)
+
+    def update(self) -> None:
+        """Replace currently installed version of chromedriver with newest available"""
+        self.logger.debug("Updating chromedriver")
+        driver_state = self.webdriver.drivers_state.get(WebDriverType.CHROME.value)
+        if not driver_state:
+            self.logger.info("Driver chromedriver is not installed")
+            return
+        local_version = driver_state.get("VERSION")
+        if not local_version:
+            self.logger.info("Corrupted .ini file")
+            return
+        self.get_remote_drivers_list()
+        remote_version = self.webdriver.get_newest_version()
+        if LooseVersion(local_version) >= LooseVersion(remote_version):
+            self.logger.info(
+                f"chromedriver is already in newest version. Local: {local_version}, remote: {remote_version}"
+            )
+        else:
+            os_ = self.webdriver.drivers_state.get(WebDriverType.CHROME.value, {}).get("OS")
+            arch = self.webdriver.drivers_state.get(WebDriverType.CHROME.value, {}).get("ARCHITECTURE")
+            self.get_driver(remote_version, os_, arch)
+            self.logger.info(f"Updated chromedriver: {local_version} -> {remote_version}")
