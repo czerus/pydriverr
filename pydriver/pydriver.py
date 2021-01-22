@@ -10,7 +10,6 @@ from pydriver.webdriver import WebDriver
 
 
 class PyDriver:
-
     """
     Download and manage webdrivers for selenium from single app
     """
@@ -82,6 +81,19 @@ class PyDriver:
         self._webdriver = WebDriver()
         """Remove given driver-type or all installed drivers"""
         self._webdriver.delete_drivers(driver_type)
+
+    def update(self, *driver_type: Tuple[str]) -> None:
+        """Update given WebDriver or all installed WebDrivers
+
+        :param driver_type: Type of the WebDriver e.g. chrome, gecko"""
+        if len(driver_type) == 0:
+            driver_type = WebDriver().drivers_state.sections
+        if driver_type:
+            for driver in driver_type:
+                self.__set_custom_driver_obj(driver)
+                self._custom_driver_obj.update()
+        else:
+            self._logger.info("No drivers installed")
 
 
 def main():
