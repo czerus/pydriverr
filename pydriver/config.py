@@ -1,10 +1,16 @@
 from enum import Enum
+from typing import List
 
 
 class WebDriverType(Enum):
     CHROME = "chrome"
     GECKO = "gecko"
     OPERA = "opera"
+
+    @staticmethod
+    def list() -> List[str]:
+        """Return list of supported WebDriver types"""
+        return list(map(lambda c: c.value, WebDriverType))
 
 
 pydriver_config = {

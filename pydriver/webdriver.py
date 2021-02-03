@@ -111,7 +111,7 @@ class WebDriver:
                 self._logger.info("Requested driver already installed")
                 self._support.exit(exit_code=0)
         if version not in self._versions_info:
-            errors.append(f"There is no such version: {version}")
+            errors.append(f"There is no such version: {version} of {driver_type}driver")
         else:
             if os_ not in self._versions_info[version]:
                 errors.append(f"There is no such OS {os_} for version: {version}")
