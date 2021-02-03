@@ -30,7 +30,7 @@ authors = ["Krzysztof Czeronko <krzysztof.czeronko@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.scripts]
-pydriver = 'pydriver.pydriver:main'
+pydriver = 'pydriver.pydriver:cli_pydriver'
 
 
 [tool.poetry.dependencies]
@@ -41,6 +41,7 @@ humanfriendly = "^8.2"
 requests = "^2.24.0"
 tabulate = "^0.8.7"
 configobj = "^5.0.6"
+click = "^7.1.2"
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.4.4"
