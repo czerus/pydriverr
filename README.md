@@ -28,13 +28,19 @@ Following webdriver types are supported:
     ``` 
 
 2. Install [Poetry](https://python-poetry.org/docs/#installation)
-3. Install project and all dependencies using poetry
+3. Inside the folder create `poetry.toml` file with content:
+    ```bash
+    [virtualenvs]
+    create = true
+    in-project = true
+    ```
+4. Install project and all dependencies using poetry.
     ```bash
    $ poetry install
    ```
    
-4. Add code
-5. Check linting and formatting by running
+5. Add code
+6. Check linting and formatting by running
     ```bash
     # To check 
     $ python lint.py
@@ -43,10 +49,6 @@ Following webdriver types are supported:
     ```
 7. Run all tests with coverage:
    ```bash
-   $ python3 -m pytest \ 
-     tests \
-     --cov=pydriver \
-     --cov-report html \
-     --cov-report term
+   $ python3 -m pytest tests --cov=pydriver --cov-report html --cov-report term
    ```
 6. Commit and push
