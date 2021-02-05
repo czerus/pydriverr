@@ -5,7 +5,11 @@
 1. Currently only installation from git is supported, refer to "Development" chapter for details.
 2. Set environment variable `DRIVERS_HOME` to point where the webdrivers should be installed
     ```bash
-   export DRIVERS_HOME=/home/$USER/webdrivers 
+   linux:
+   export DRIVERS_HOME=/home/$USER/webdrivers
+   
+   windows:
+   setx DRIVERS_HOME "%USERPROFILE%\webdrivers"
    ``` 
 
 # Usage
@@ -28,11 +32,9 @@ Following webdriver types are supported:
     ``` 
 
 2. Install [Poetry](https://python-poetry.org/docs/#installation)
-3. Inside the folder create `poetry.toml` file with content:
+3. If you want to create vitrual env inside the same folder:
     ```bash
-    [virtualenvs]
-    create = true
-    in-project = true
+    $ poetry config virtualenvs.in-project true
     ```
 4. Install project and all dependencies using poetry.
     ```bash
