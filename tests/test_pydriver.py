@@ -246,10 +246,12 @@ class TestWebdriverSystemIdentification:
         webdriver.WebDriver()
         assert f"{webdriver.WebDriver._ENV_NAME} set to {tmpdir.join(PYDRIVER_HOME)}" in caplog.text
 
-    def test__get_drivers_home_nok(self, caplog, mocker):
+    def test__get_drivers_home_nok(self, caplog, mocker, monkeypatch):
+        """ Test missing path in DRIVERS_HOME env."""
         caplog.set_level(logging.DEBUG)
         webdriver.platform = mocker.Mock()
         webdriver.platform.uname.return_value = PlatformUname()
+        monkeypatch.setenv(webdriver.WebDriver._ENV_NAME, "")
         with pytest.raises(SystemExit) as excinfo:
             webdriver.WebDriver()
         assert str(excinfo.value) == "1"
