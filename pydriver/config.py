@@ -4,6 +4,7 @@ from enum import Enum
 class WebDriverType(Enum):
     CHROME = "chrome"
     GECKO = "gecko"
+    OPERA = "opera"
 
 
 pydriver_config = {
@@ -12,6 +13,9 @@ pydriver_config = {
         "ignore_files": ["index.html", "notes", "Parent Directory", "icons", "LATEST_RELEASE"],
     },
     WebDriverType.GECKO: {
+        "url": "https://github.com/{owner}/{repo}",
+    },
+    WebDriverType.OPERA: {
         "url": "https://github.com/{owner}/{repo}",
     },
 }
