@@ -163,6 +163,9 @@ class WebDriver:
             self._unpack(archive_path, tmpdir)
             uncompressed_file = Path(os.listdir(tmpdir)[0])
             src = tmpdir / uncompressed_file
+            if not src.is_file():  # if file is inside nested folder
+                uncompressed_file = Path(os.listdir(src)[0])
+                src = src / uncompressed_file
             dst = self.drivers_home / uncompressed_file
             shutil.copyfile(src, dst)
 

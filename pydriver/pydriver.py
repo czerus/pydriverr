@@ -31,6 +31,10 @@ class PyDriver:
             from pydriver.geckodriver import GeckoDriver
 
             self._custom_driver_obj = GeckoDriver()
+        elif driver_type == "opera":
+            from pydriver.operadriver import OperaDriver
+
+            self._custom_driver_obj = OperaDriver()
         else:
             self._support.exit(f"Invalid driver type: {driver_type}")
 

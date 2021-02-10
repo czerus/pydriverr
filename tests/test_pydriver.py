@@ -18,7 +18,9 @@ from pydriver import pydriver, webdriver
 from tests.fixtures import assert_in_log, assert_not_in_log
 
 GECKO_URL = "https://github.com/mozilla/geckodriver"
+OPERA_URL = "https://github.com/operasoftware/operachromiumdriver"
 GECKO_API_URL = "https://api.github.com/repos/mozilla/geckodriver"
+OPERA_API_URL = "https://api.github.com/repos/operasoftware/operachromiumdriver"
 CHROME_URL = "https://chromedriver.storage.googleapis.com"
 NOT_SUPPORTED = "not_supported"
 PYDRIVER_HOME = "pydriver_home"
@@ -48,6 +50,26 @@ EXPECTED_GECKO = """    VERSION    OS     ARCHITECTURE
 10  0.28.0     linux  32 64
 11  0.28.0     mac
 12  0.28.0     win    32 64"""
+EXPECTED_OPERA = """    VERSION        OS     ARCHITECTURE
+--  -------------  -----  --------------
+ 0  0.1.0          linux  32 64
+ 1  0.1.0          mac    32 64
+ 2  0.1.0          win    32
+ 3  0.2.0          linux  32 64
+ 4  0.2.0          mac    64
+ 5  0.2.0          win    32
+ 6  2.42           linux  64
+ 7  2.42           mac    64
+ 8  2.42           win    32 64
+ 9  2.45           linux  64
+10  2.45           mac    64
+11  2.45           win    32 64
+12  87.0.4280.67   linux  64
+13  87.0.4280.67   mac    64
+14  87.0.4280.67   win    32 64
+15  88.0.4324.104  linux  64
+16  88.0.4324.104  mac    64
+17  88.0.4324.104  win    32 64"""
 # TODO: possibly replace DRIVERS_CFG with small dicts anc create_custom_ini
 DRIVERS_CFG = {
     "chrome": [
@@ -83,6 +105,37 @@ DRIVERS_CFG = {
             "CHECKSUM": "56db17c16d7fc9003694a2a01e37dc87",
             "IN_INI": True,
         }
+    ],
+    "opera": [
+        {
+            "VERSION": "88.0.4324.104",
+            "OS": "win",
+            "ARCHITECTURE": "32",
+            "FILENAME": "operadriver.exe",
+            "CHECKSUM": "c6847807558142bec4e1bcc70ffa2387",
+            "IN_INI": True,
+        },
+        {
+            "VERSION": "88.0.4324.104",
+            "OS": "linux",
+            "ARCHITECTURE": "64",
+            "FILENAME": "operadriver",
+            "CHECKSUM": "82250dc9c5224fa2d012e5b60300c96b",
+        },
+        {
+            "VERSION": "88.0.4324.104",
+            "OS": "mac",
+            "ARCHITECTURE": "64",
+            "FILENAME": "operadriver",
+            "CHECKSUM": "e06c3da38cc9d4fdd92a8967707f9c79",
+        },
+        {
+            "VERSION": "0.1.1",
+            "OS": "win",
+            "ARCHITECTURE": "32",
+            "FILENAME": "operadriver.exe",
+            "CHECKSUM": "96ef9b54ebd1240fdf96bfec97fdac93",
+        },
     ],
 }
 
@@ -163,6 +216,7 @@ def create_custom_ini(tmp_dir, driver_type, filename, version, os_, arch, checks
     :param tmp_dir: Path where ini should be created
     :param driver_type: Type of WebDriver e.g. chrome, gecko
     :param filename: File name of the WebDriver e.g. chromedriver or geckodriver.exe
+    :param version: WebDriver version
     :param os_: Operating system i.e. win, linux, mac
     :param arch: Architecture of the OS e.g. 64, 32
     :param checksum: MD5 checksum of WebDriver file
@@ -197,7 +251,8 @@ def load_response(driver_type: str):
     resource_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", f"{driver_type}.txt")
     with open(resource_path) as f:
         content = f.read()
-    if driver_type == "gecko":
+    if driver_type in ["gecko", "opera"]:
+        print(json.loads(content))
         return json.loads(content)
     return content
 
@@ -336,10 +391,11 @@ class TestInstalledDrivers:
         assert str(excinfo.value) == "1"
 
     def test_installed_drivers_installed(self, env_vars, tmpdir, test_dirs, create_ini, caplog, mocker):
-        expected = """    DRIVER TYPE    VERSION       OS      ARCHITECTURE  FILENAME          CHECKSUM
---  -------------  ------------  ----  --------------  ----------------  --------------------------------
- 0  chrome         81.0.4044.20  win               32  chromedriver.exe  56db17c16d7fc9003694a2a01e37dc87
- 1  gecko          0.28.0        win               32  geckodriver.exe   56db17c16d7fc9003694a2a01e37dc87"""
+        expected = """    DRIVER TYPE    VERSION        OS      ARCHITECTURE  FILENAME          CHECKSUM
+--  -------------  -------------  ----  --------------  ----------------  --------------------------------
+ 0  chrome         81.0.4044.20   win               32  chromedriver.exe  56db17c16d7fc9003694a2a01e37dc87
+ 1  gecko          0.28.0         win               32  geckodriver.exe   56db17c16d7fc9003694a2a01e37dc87
+ 2  opera          88.0.4324.104  win               32  operadriver.exe   c6847807558142bec4e1bcc70ffa2387"""
         pydriver.platform = mocker.Mock()
         pydriver.platform.uname.return_value = PlatformUname()
         pd = pydriver.PyDriver()
@@ -362,6 +418,12 @@ class TestListDrivers:
                 "https://api.github.com/repos/mozilla/geckodriver/releases",
                 EXPECTED_GECKO,
                 {"json": load_response("gecko")},
+            ),
+            (
+                "opera",
+                f"{OPERA_API_URL}/releases",
+                EXPECTED_OPERA,
+                {"json": load_response("opera")},
             ),
         ],
     )
@@ -405,7 +467,7 @@ class TestDeleteDriver:
 
     @pytest.mark.parametrize(
         "driver_type, driver_file",
-        [("chrome", "chromedriver.exe"), ("gecko", "geckodriver.exe")],
+        [("chrome", "chromedriver.exe"), ("gecko", "geckodriver.exe"), ("opera", "operadriver.exe")],
     )
     def test_delete_driver_single_driver(
         self, driver_type, driver_file, tmpdir, test_dirs, env_vars, caplog, create_ini
@@ -419,7 +481,7 @@ class TestDeleteDriver:
         assert dict(pd._webdriver.drivers_state) == get_installed_driver_from_ini(driver_type)
 
     def test_delete_driver_many_drivers(self, tmpdir, test_dirs, env_vars, caplog, create_ini):
-        all_drivers = {"chrome": "chromedriver.exe", "gecko": "geckodriver.exe"}
+        all_drivers = {"chrome": "chromedriver.exe", "gecko": "geckodriver.exe", "opera": "operadriver.exe"}
         for driver_type, driver_file_name in all_drivers.items():
             create_unarc_driver(tmpdir.join(PYDRIVER_HOME), driver_file_name)
         pd = pydriver.PyDriver()
@@ -444,7 +506,15 @@ class TestDeleteDriver:
                 "FILENAME": "geckodriver.exe",
                 "CHECKSUM": "56db17c16d7fc9003694a2a01e37dc87",
                 "IN_INI": "True",
-            }
+            },
+            "opera": {
+                "VERSION": "88.0.4324.104",
+                "OS": "win",
+                "ARCHITECTURE": "32",
+                "FILENAME": "operadriver.exe",
+                "CHECKSUM": "c6847807558142bec4e1bcc70ffa2387",
+                "IN_INI": "True",
+            },
         }
 
 
@@ -474,6 +544,14 @@ class TestInstallDriver:
                 "0.28.0",
                 "geckodriver.exe",
                 "geckodriver-v0.28.0-win32.zip",
+            ),
+            (
+                "opera",
+                {"url": f"{OPERA_API_URL}/releases", "kwargs": {"json": load_response("opera")}},
+                {"url": f"{OPERA_URL}/releases/download/v." + "{version}/{name}"},
+                "88.0.4324.104",
+                "operadriver.exe",
+                "operadriver_win32.zip",
             ),
         ],
     )
@@ -516,6 +594,7 @@ class TestInstallDriver:
         [
             ("chrome", {CHROME_URL: {"text": load_response("chrome")}}, "71.0.3578.33"),
             ("gecko", {GECKO_API_URL + "/releases": {"json": load_response("gecko")}}, "0.28.0"),
+            ("opera", {OPERA_API_URL + "/releases": {"json": load_response("opera")}}, "88.0.4324.104"),
         ],
     )
     def test_install_driver_invalid_os(
@@ -534,6 +613,7 @@ class TestInstallDriver:
         [
             ("chrome", {CHROME_URL: {"text": load_response("chrome")}}, "1.1.1.1"),
             ("gecko", {GECKO_API_URL + "/releases": {"json": load_response("gecko")}}, "1.1.1.1"),
+            ("opera", {OPERA_API_URL + "/releases": {"json": load_response("opera")}}, "1.1.1.1"),
         ],
     )
     def test_install_driver_invalid_version(
@@ -552,6 +632,7 @@ class TestInstallDriver:
         [
             ("chrome", {CHROME_URL: {"text": load_response("chrome")}}, "71.0.3578.33"),
             ("gecko", {GECKO_API_URL + "/releases": {"json": load_response("gecko")}}, "0.28.0"),
+            ("opera", {OPERA_API_URL + "/releases": {"json": load_response("opera")}}, "88.0.4324.104"),
         ],
     )
     def test_install_driver_invalid_arch(
@@ -570,6 +651,7 @@ class TestInstallDriver:
         [
             ("chrome", {CHROME_URL: {"text": load_response("chrome")}}, "81.0.4044.20"),
             ("gecko", {GECKO_API_URL + "/releases": {"json": load_response("gecko")}}, "0.28.0"),
+            ("opera", {OPERA_API_URL + "/releases": {"json": load_response("opera")}}, "88.0.4324.104"),
         ],
     )
     def test_install_driver_already_installed(
@@ -625,6 +707,36 @@ class TestInstallDriver:
                 "0.4.2",
                 "mac",
                 "",
+            ),
+            (
+                "opera",
+                "operadriver.exe",
+                "operadriver_win64.zip",
+                {"url": OPERA_API_URL + "/releases", "kwargs": {"json": load_response("opera")}},
+                {"url": f"{OPERA_URL}/releases/download/v." + "{version}/{name}"},
+                "87.0.4280.67",
+                "win",
+                "64",
+            ),
+            (
+                "opera",
+                "operadriver",
+                "operadriver_linux64.zip",
+                {"url": OPERA_API_URL + "/releases", "kwargs": {"json": load_response("opera")}},
+                {"url": f"{OPERA_URL}/releases/download/v." + "{version}/{name}"},
+                "87.0.4280.67",
+                "linux",
+                "64",
+            ),
+            (
+                "opera",
+                "operadriver",
+                "operadriver_mac64.zip",
+                {"url": OPERA_API_URL + "/releases", "kwargs": {"json": load_response("opera")}},
+                {"url": f"{OPERA_URL}/releases/download/v." + "{version}/{name}"},
+                "87.0.4280.67",
+                "mac",
+                "64",
             ),
         ],
     )
@@ -702,6 +814,33 @@ class TestInstallDriver:
                 "mac",
                 "",
             ),
+            (
+                "opera",
+                "operadriver.exe",
+                "operadriver_win64.zip",
+                {"url": OPERA_API_URL + "/releases", "kwargs": {"json": load_response("opera")}},
+                "87.0.4280.67",
+                "win",
+                "64",
+            ),
+            (
+                "opera",
+                "operadriver",
+                "operadriver_linux64.zip",
+                {"url": OPERA_API_URL + "/releases", "kwargs": {"json": load_response("opera")}},
+                "0.1.0",
+                "linux",
+                "64",
+            ),
+            (
+                "opera",
+                "operadriver",
+                "operadriver_mac64.zip",
+                {"url": OPERA_API_URL + "/releases", "kwargs": {"json": load_response("opera")}},
+                "87.0.4280.67",
+                "mac",
+                "64",
+            ),
         ],
     )
     def test_install_driver_from_cache(
@@ -772,6 +911,17 @@ class TestUpdate:
                 "mac",
                 "",
             ),
+            (
+                "opera",
+                "operadriver.exe",
+                "operadriver_win64.zip",
+                {"url": OPERA_API_URL + "/releases", "kwargs": {"json": load_response("opera")}},
+                {"url": f"{OPERA_URL}/releases/download/v." + "{version}/{name}"},
+                "87.0.4280.67",
+                "88.0.4324.104",
+                "win",
+                "64",
+            ),
         ],
     )
     def test_update_single_driver(
@@ -835,6 +985,15 @@ class TestUpdate:
                 "linux",
                 "32",
             ),
+            (
+                "opera",
+                "operadriver",
+                "operadriver_linux64.zip",
+                {"url": OPERA_API_URL + "/releases", "kwargs": {"json": load_response("opera")}},
+                "88.0.4324.104",
+                "linux",
+                "64",
+            ),
         ],
     )
     def test_update_no_new_version(
@@ -873,6 +1032,7 @@ class TestUpdate:
         [
             "chrome",
             "gecko",
+            "opera",
         ],
     )
     def test_update_driver_not_in_ini(self, driver_type, tmpdir, test_dirs, env_vars, caplog, empty_ini):
@@ -888,6 +1048,7 @@ class TestUpdate:
         [
             "chrome",
             "gecko",
+            "opera",
         ],
     )
     def test_update_driver_corrupted_ini(
