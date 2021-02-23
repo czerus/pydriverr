@@ -42,7 +42,7 @@ class OperaDriver:
         self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
         self.get_remote_drivers_list()
         version, os_, arch, file_name = self.webdriver.validate_version_os_arch(
-            WebDriverType.OPERA.value, version, os_, arch
+            WebDriverType.OPERA.drv_name, version, os_, arch
         )
         url = pydriver_config[WebDriverType.OPERA]["url"].format(owner=self.__OWNER, repo=self.__REPO)
         if version[0] == "0":  # old version "0.x.x" instead v. have just v
@@ -50,7 +50,7 @@ class OperaDriver:
         else:
             prefix = "v."
         url = url + f"/releases/download/{prefix}{version}/{file_name}"
-        self.webdriver.get_driver(WebDriverType.OPERA.value, url, version, os_, arch, file_name)
+        self.webdriver.get_driver(WebDriverType.OPERA.drv_name, url, version, os_, arch, file_name)
 
     def get_remote_drivers_list(self) -> None:
         """Get remote repository drivers list"""
@@ -59,10 +59,10 @@ class OperaDriver:
 
     def update(self) -> None:
         """Replace currently installed version of operadriver with newest available"""
-        self.logger.debug(f"Updating {WebDriverType.OPERA.value}driver")
-        driver_state = self.webdriver.drivers_state.get(WebDriverType.OPERA.value)
+        self.logger.debug(f"Updating {WebDriverType.OPERA.drv_name}driver")
+        driver_state = self.webdriver.drivers_state.get(WebDriverType.OPERA.drv_name)
         if not driver_state:
-            self.logger.info(f"Driver {WebDriverType.OPERA.value}driver is not installed")
+            self.logger.info(f"Driver {WebDriverType.OPERA.drv_name}driver is not installed")
             return
         local_version = driver_state.get("VERSION")
         if not local_version:
@@ -72,11 +72,11 @@ class OperaDriver:
         remote_version = self.webdriver.get_newest_version()
         if LooseVersion(local_version) >= LooseVersion(remote_version):
             self.logger.info(
-                f"{WebDriverType.OPERA.value}driver is already in newest version. "
+                f"{WebDriverType.OPERA.drv_name}driver is already in newest version. "
                 f"Local: {local_version}, remote: {remote_version}"
             )
         else:
-            os_ = self.webdriver.drivers_state.get(WebDriverType.OPERA.value, {}).get("OS")
-            arch = self.webdriver.drivers_state.get(WebDriverType.OPERA.value, {}).get("ARCHITECTURE")
+            os_ = self.webdriver.drivers_state.get(WebDriverType.OPERA.drv_name, {}).get("OS")
+            arch = self.webdriver.drivers_state.get(WebDriverType.OPERA.drv_name, {}).get("ARCHITECTURE")
             self.get_driver(remote_version, os_, arch)
-            self.logger.info(f"Updated {WebDriverType.OPERA.value}driver: {local_version} -> {remote_version}")
+            self.logger.info(f"Updated {WebDriverType.OPERA.drv_name}driver: {local_version} -> {remote_version}")

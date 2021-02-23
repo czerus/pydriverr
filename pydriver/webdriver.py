@@ -2,6 +2,7 @@ import gzip
 import logging
 import os
 import platform
+import re
 import shutil
 import tempfile
 from distutils.version import LooseVersion
@@ -11,6 +12,7 @@ from typing import Tuple
 import tabulate
 from configobj import ConfigObj
 
+from pydriver.config import WebDriverType
 from pydriver.downloader import Downloader
 from pydriver.support import Support
 
@@ -161,11 +163,15 @@ class WebDriver:
             self._delete_driver_files(old_driver_name)
         with tempfile.TemporaryDirectory() as tmpdir:
             self._unpack(archive_path, tmpdir)
-            uncompressed_file = Path(os.listdir(tmpdir)[0])
-            src = tmpdir / uncompressed_file
-            if not src.is_file():  # if file is inside nested folder
-                uncompressed_file = Path(os.listdir(src)[0])
-                src = src / uncompressed_file
+            uncompressed_all_paths = list(Path(tmpdir).rglob("*"))  # get all paths with any nested folders
+            all_driver_filenames = "|".join(WebDriverType.list_all_file_names())
+            uncompressed_driver_paths = [
+                file_path
+                for file_path in uncompressed_all_paths
+                if re.match(f".*({all_driver_filenames}).*", str(file_path.name))
+            ]  # leaves only paths with driver name inside
+            src = [path_ for path_ in uncompressed_driver_paths if path_.is_file()][0]  # get path of driver file
+            uncompressed_file = Path(src.name)
             dst = self.drivers_home / uncompressed_file
             shutil.copyfile(src, dst)
 
