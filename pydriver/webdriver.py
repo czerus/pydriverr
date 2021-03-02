@@ -30,8 +30,8 @@ class WebDriver:
     ]
 
     def __init__(self):
-        self._logger = logging.getLogger("PyDriver")
-        self._support = Support()
+        self.logger = logging.getLogger("PyDriver")
+        self.support = Support()
         self._downloader = Downloader()
         self.drivers_home = Path(self._get_drivers_home())
         self._drivers_cfg = self.drivers_home / Path(".drivers.ini")
@@ -40,9 +40,9 @@ class WebDriver:
         self.system_name = platform.uname().system
         self.system_arch = platform.uname().machine
         self._versions_info = {}
-        self._support.setup_dirs([self.drivers_home, self.cache_dir])
-        self._logger.debug(f"Identified OS: {self.system_name}")
-        self._logger.debug(f"Identified architecture: {self.system_arch}")
+        self.support.setup_dirs([self.drivers_home, self.cache_dir])
+        self.logger.debug(f"Identified OS: {self.system_name}")
+        self.logger.debug(f"Identified architecture: {self.system_arch}")
 
     @property
     def system_arch(self):
@@ -55,8 +55,8 @@ class WebDriver:
         elif system_arch in ["i386", "i586", "32", "x86"]:
             self._system_arch = "32"
         else:
-            self._support.exit(f"Unknown architecture: {system_arch}")
-        self._logger.debug(f"Current's OS architecture string: {system_arch} -> {self._system_arch} bit")
+            self.support.exit(f"Unknown architecture: {system_arch}")
+        self.logger.debug(f"Current's OS architecture string: {system_arch} -> {self._system_arch} bit")
 
     @property
     def system_name(self):
@@ -72,14 +72,14 @@ class WebDriver:
         elif system_name == "linux":
             self._system_name = "linux"
         else:
-            self._support.exit(f"Unknown OS type: {system_name}")
-        self._logger.debug(f"Current's OS type string: {system_name} -> {self._system_name}")
+            self.support.exit(f"Unknown OS type: {system_name}")
+        self.logger.debug(f"Current's OS type string: {system_name} -> {self._system_name}")
 
     def _get_drivers_home(self) -> str:
         home = os.environ.get(WebDriver._ENV_NAME)
-        self._logger.debug(f"{WebDriver._ENV_NAME} set to {home}")
+        self.logger.debug(f"{WebDriver._ENV_NAME} set to {home}")
         if not home:
-            self._support.exit("Env variable 'DRIVERS_HOME' not defined")
+            self.support.exit("Env variable 'DRIVERS_HOME' not defined")
         return home
 
     def update_version_dict(self, version: str, os_: str, arch: str, filename: str) -> None:
@@ -94,7 +94,7 @@ class WebDriver:
 
     def get_newest_version(self) -> str:
         highest_v = str(sorted(self._versions_info.keys(), key=LooseVersion)[-1])
-        self._logger.debug(f"Highest version of driver is: {highest_v}")
+        self.logger.debug(f"Highest version of driver is: {highest_v}")
         return highest_v
 
     def validate_version_os_arch(
@@ -106,12 +106,12 @@ class WebDriver:
         arch = arch or self.system_arch
         if driver_type == "gecko" and os_ == "mac":
             arch = ""  # gecko does not have arch for mac
-        self._logger.debug(f"I will download following version: {version}, OS: {os_}, arch: {arch}")
+        self.logger.debug(f"I will download following version: {version}, OS: {os_}, arch: {arch}")
         driver = self.drivers_state.get(driver_type)
         if driver:
             if os_ == driver.get("OS") and arch == driver.get("ARCHITECTURE") and version == driver.get("VERSION"):
-                self._logger.info("Requested driver already installed")
-                self._support.exit(exit_code=0)
+                self.logger.info("Requested driver already installed")
+                self.support.exit(exit_code=0)
         if version not in self._versions_info:
             errors.append(f"There is no such version: {version} of {driver_type}driver")
         else:
@@ -121,20 +121,20 @@ class WebDriver:
                 if arch not in self._versions_info[version][os_]:
                     errors.append(f"There is no such arch {arch} for version {version} and OS: {os_}")
         if errors:
-            self._support.exit(errors)
+            self.support.exit(errors)
         return version, os_, arch, Path(self._versions_info[version][os_][arch])
 
-    def get_driver(self, driver_type: str, url: str, version: str, os_: str, arch: str, file_name: Path) -> None:
+    def _install_driver(self, driver_type: str, url: str, version: str, os_: str, arch: str, file_name: Path) -> None:
         version_cache_dir = self.cache_dir / Path(driver_type) / Path(version)
         zipfile_path = version_cache_dir / file_name
         if not (version_cache_dir / file_name).is_file():
-            self._logger.info("Requested driver not found in cache")
-            self._support.setup_dirs([version_cache_dir])
+            self.logger.info("Requested driver not found in cache")
+            self.support.setup_dirs([version_cache_dir])
             self._downloader.dl_driver(url, zipfile_path)
         else:
-            self._logger.debug(f"{driver_type}driver in cache")
+            self.logger.debug(f"{driver_type}driver in cache")
         self.update_driver(zipfile_path, driver_type, os_, arch, version)
-        self._logger.info(f"Installed {driver_type}driver:\nVERSION: {version}\nOS: {os_}\nARCHITECTURE: {arch}")
+        self.logger.info(f"Installed {driver_type}driver:\nVERSION: {version}\nOS: {os_}\nARCHITECTURE: {arch}")
 
     @staticmethod
     def __unpack_gz(arc_path, dst_dir):
@@ -148,7 +148,7 @@ class WebDriver:
         if "gz" not in compression_frmts:
             shutil.register_unpack_format("gz", ["gz"], WebDriver.__unpack_gz)
         shutil.unpack_archive(archive_path, extract_dir=working_dir)
-        self._logger.debug(f"Uncompressed {archive_path} to {self.drivers_home}")
+        self.logger.debug(f"Uncompressed {archive_path} to {self.drivers_home}")
 
     def update_driver(
         self,
@@ -179,11 +179,11 @@ class WebDriver:
 
     def print_drivers_from_ini(self):
         if not self._drivers_cfg.exists() or len(self.drivers_state.sections) == 0:
-            self._support.exit("No drivers installed")
+            self.support.exit("No drivers installed")
         values = []
         for driver_type in self.drivers_state.sections:
             values.append([driver_type] + [self.drivers_state[driver_type][v] for v in WebDriver._CONFIG_KEYS[1:]])
-        self._logger.info(tabulate.tabulate(values, headers=WebDriver._CONFIG_KEYS, showindex=True))
+        self.logger.info(tabulate.tabulate(values, headers=WebDriver._CONFIG_KEYS, showindex=True))
 
     def _add_driver_to_ini(
         self,
@@ -202,38 +202,38 @@ class WebDriver:
                     os_,
                     arch,
                     file_name,
-                    self._support.calculate_checksum(self.drivers_home / file_name),
+                    self.support.calculate_checksum(self.drivers_home / file_name),
                 ],
             )
         )
         self.drivers_state.write()
-        self._logger.debug(f"Driver {driver_type} added to ini file")
+        self.logger.debug(f"Driver {driver_type} added to ini file")
 
     def _delete_driver_files(self, filename: Path) -> None:
         filepath = self.drivers_home / filename
         if filepath.is_file():
             os.remove(str(filepath))
-            self._logger.debug(f"Driver file deleted: {filename}")
+            self.logger.debug(f"Driver file deleted: {filename}")
         else:
-            self._logger.debug(f"Driver file not found: {filename}")
+            self.logger.debug(f"Driver file not found: {filename}")
 
     def clear_cache(self):
         shutil.rmtree(self.cache_dir, ignore_errors=True)
 
     def delete_drivers(self, driver_types_to_delete: Tuple[str]) -> None:
         if not self._drivers_cfg.exists():
-            self._support.exit("No drivers installed")
+            self.support.exit("No drivers installed")
         if len(driver_types_to_delete) == 0:
             driver_types_to_delete = self.drivers_state.sections.copy()
         for driver_type in driver_types_to_delete:
             if driver_type not in self.drivers_state.sections:
-                self._logger.info(f"Driver: {driver_type} is not installed")
+                self.logger.info(f"Driver: {driver_type} is not installed")
             else:
                 driver_filename = self.drivers_state[driver_type]["FILENAME"]
                 self.drivers_state.pop(driver_type)
-                self._logger.debug(f"Driver {driver_type} removed from ini")
+                self.logger.debug(f"Driver {driver_type} removed from ini")
                 self._delete_driver_files(driver_filename)
-                self._logger.info(f"Driver: {driver_type} deleted")
+                self.logger.info(f"Driver: {driver_type} deleted")
                 self.drivers_state.write()
 
     def print_remote_drivers(self):
@@ -242,4 +242,4 @@ class WebDriver:
             for os_, os_data in version_data.items():
                 values.append([version, os_, " ".join(os_data.keys())])
         values = sorted(values, key=lambda val: LooseVersion(val[0]))
-        self._logger.info(tabulate.tabulate(values, headers=WebDriver._CONFIG_KEYS[1:4], showindex=True))
+        self.logger.info(tabulate.tabulate(values, headers=WebDriver._CONFIG_KEYS[1:4], showindex=True))
