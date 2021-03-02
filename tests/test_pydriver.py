@@ -5,10 +5,8 @@ import logging
 import os
 import platform
 import shutil
-import tarfile
 import tempfile
 from typing import Dict
-from zipfile import ZipFile
 
 import py
 import pytest
@@ -16,6 +14,7 @@ from click.testing import CliRunner
 from configobj import ConfigObj
 
 from pydriver import pydriver, webdriver
+from pydriver.config import WebDriverType
 from pydriver.pydriver import cli_pydriver
 from tests.fixtures import assert_in_log, assert_not_in_log
 
@@ -143,6 +142,12 @@ DRIVERS_CFG = {
     ],
 }
 
+DRIVERS_OTHER_FILES = {
+    "chrome": [],
+    "gecko": [],
+    "opera": ["sha512_sum"],
+}
+
 
 def create_unarc_driver(dst_dir: str, file_name: str) -> str:
     content = 10 * file_name
@@ -151,27 +156,41 @@ def create_unarc_driver(dst_dir: str, file_name: str) -> str:
     return hashlib.md5(content.encode()).hexdigest()
 
 
+def create_unarc_driver_other_files(dst_dir: str, driver_type: str) -> None:
+    """
+    Create other drivers file that are present in driver arc file
+
+    :param dst_dir: Path where files are created
+    :param driver_type: Type of WebDriver e.g. chrome, gecko, opera
+    """
+    for file_name in DRIVERS_OTHER_FILES[driver_type]:
+        create_unarc_driver(dst_dir, file_name)
+
+
 def create_arc_driver(tmp_dir, driver_type, arc_file_name, unarc_file_name, cache_dir=None, version=None) -> str:
     if cache_dir is None:
         cache_dir = os.path.join(tmp_dir, CACHE_DIR, driver_type, version)
-    dst = os.path.join(cache_dir, arc_file_name)
     if not os.path.exists(cache_dir):
         os.makedirs(cache_dir, exist_ok=True)
 
     with tempfile.TemporaryDirectory() as tmp:
-        checksum = create_unarc_driver(tmp, unarc_file_name)
+        nested_folder = tmp
+        if driver_type == WebDriverType.OPERA.drv_name:
+            nested_folder = os.path.join(tmp, os.path.splitext(arc_file_name)[0])
+            os.makedirs(nested_folder)
+        checksum = create_unarc_driver(nested_folder, unarc_file_name)
+        create_unarc_driver_other_files(nested_folder, driver_type)
 
         if arc_file_name.endswith(".tar.gz"):
-            # TODO: replace changing dir with context manager
-            cwd = os.getcwd()
-            os.chdir(tmp)
-            with tarfile.open(dst, "w:gz") as tar:
-                tar.add(unarc_file_name)
-            os.chdir(cwd)
+            file_name = arc_file_name.replace(".tar.gz", "")
+            dst = os.path.join(cache_dir, file_name)
+            shutil.make_archive(dst, "gztar", tmp)
         elif arc_file_name.endswith(".zip"):
-            with ZipFile(dst, "w") as myzip:
-                myzip.write(os.path.join(tmp, unarc_file_name), unarc_file_name)
+            file_name = arc_file_name.replace(".zip", "")
+            dst = os.path.join(cache_dir, file_name)
+            shutil.make_archive(dst, "zip", tmp)
         elif arc_file_name.endswith(".gz"):
+            dst = os.path.join(cache_dir, arc_file_name)
             with open(os.path.join(tmp, unarc_file_name), "rb") as f_in:
                 with gzip.open(dst, "wb") as f_out:
                     shutil.copyfileobj(f_in, f_out)
@@ -543,7 +562,7 @@ class TestInstallDriver:
         assert result.exc_info[0] == SystemExit
 
     @pytest.mark.parametrize(
-        "driver_type, get_versions_args, get_file_args, version, unarc_file_name, arc_file_name",
+        "driver_type, get_versions_args, get_file_args, version, unarc_file_name, arc_file_name, os_, arch",
         [
             (
                 "chrome",
@@ -552,6 +571,8 @@ class TestInstallDriver:
                 "71.0.3578.33",
                 "chromedriver.exe",
                 "chromedriver_win32.zip",
+                "win",
+                "32",
             ),
             (
                 "gecko",
@@ -560,6 +581,28 @@ class TestInstallDriver:
                 "0.28.0",
                 "geckodriver.exe",
                 "geckodriver-v0.28.0-win32.zip",
+                "win",
+                "32",
+            ),
+            (
+                "gecko",
+                {"url": f"{GECKO_API_URL}/releases", "kwargs": {"json": load_response("gecko")}},
+                {"url": f"{GECKO_URL}/releases/download/v" + "{version}/{name}"},
+                "0.28.0",
+                "geckodriver",
+                "geckodriver-v0.28.0-linux64.tar.gz",
+                "linux",
+                "64",
+            ),
+            (
+                "gecko",
+                {"url": f"{GECKO_API_URL}/releases", "kwargs": {"json": load_response("gecko")}},
+                {"url": f"{GECKO_URL}/releases/download/v" + "{version}/{name}"},
+                "0.28.0",
+                "geckodriver",
+                "geckodriver-v0.28.0-macos.tar.gz",
+                "mac",
+                "",
             ),
             (
                 "opera",
@@ -568,6 +611,28 @@ class TestInstallDriver:
                 "88.0.4324.104",
                 "operadriver.exe",
                 "operadriver_win32.zip",
+                "win",
+                "32",
+            ),
+            (
+                "opera",
+                {"url": f"{OPERA_API_URL}/releases", "kwargs": {"json": load_response("opera")}},
+                {"url": f"{OPERA_URL}/releases/download/v." + "{version}/{name}"},
+                "88.0.4324.104",
+                "operadriver",
+                "operadriver_linux64.zip",
+                "linux",
+                "64",
+            ),
+            (
+                "opera",
+                {"url": f"{OPERA_API_URL}/releases", "kwargs": {"json": load_response("opera")}},
+                {"url": f"{OPERA_URL}/releases/download/v." + "{version}/{name}"},
+                "88.0.4324.104",
+                "operadriver",
+                "operadriver_mac64.zip",
+                "mac",
+                "64",
             ),
         ],
     )
@@ -579,6 +644,8 @@ class TestInstallDriver:
         version,
         arc_file_name,
         unarc_file_name,
+        os_,
+        arch,
         tmpdir,
         test_dirs,
         env_vars,
@@ -589,18 +656,20 @@ class TestInstallDriver:
         content, checksum = load_driver_arc_content(tmpdir, driver_type, arc_file_name, unarc_file_name)
         requests_mock.get(get_file_args["url"].format(version=version, name=arc_file_name), content=content)
         runner = CliRunner()
-        result = runner.invoke(cli_pydriver, ["install", "-d", driver_type, "-o", "win", "-a", "32"])
+        result = runner.invoke(cli_pydriver, ["install", "-d", driver_type, "-o", os_, "-a", arch])
         assert result.exit_code == 0
-        assert_in_log(caplog.messages, "Requested version: , OS: win, arch: 32")
+        assert_in_log(caplog.messages, f"Requested version: , OS: {os_}, arch: {arch}")
         assert_in_log(caplog.messages, f"Highest version of driver is: {version}")
         assert_in_log(caplog.messages, "Requested driver not found in cache")
-        assert_in_log(caplog.messages, f"I will download following version: {version}, OS: win, arch: 32")
-        assert_in_log(caplog.messages, f"Installed {driver_type}driver:\nVERSION: {version}\nOS: win\nARCHITECTURE: 32")
+        assert_in_log(caplog.messages, f"I will download following version: {version}, OS: {os_}, arch: {arch}")
+        assert_in_log(
+            caplog.messages, f"Installed {driver_type}driver:\nVERSION: {version}\n" f"OS: {os_}\nARCHITECTURE: {arch}"
+        )
         assert get_ini_content(tmpdir) == {
             driver_type: {
                 "VERSION": version,
-                "OS": "win",
-                "ARCHITECTURE": "32",
+                "OS": os_,
+                "ARCHITECTURE": arch,
                 "FILENAME": unarc_file_name,
                 "CHECKSUM": checksum,
             }
@@ -716,6 +785,16 @@ class TestInstallDriver:
                 {"url": f"{GECKO_URL}/releases/download/v" + "{version}/{name}"},
                 "0.16.1",
                 "win",
+                "64",
+            ),
+            (
+                "gecko",
+                "geckodriver",
+                "geckodriver-v0.16.1-linux64.tar.gz",
+                {"url": GECKO_API_URL + "/releases", "kwargs": {"json": load_response("gecko")}},
+                {"url": f"{GECKO_URL}/releases/download/v" + "{version}/{name}"},
+                "0.16.1",
+                "linux",
                 "64",
             ),
             (
