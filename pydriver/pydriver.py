@@ -134,7 +134,7 @@ def show_available(driver_type: str) -> None:
     driver = _PyDriver(driver_type)
     driver.webdriver_obj.get_remote_drivers_list()
     driver.logger.info(f"Available {driver_type} drivers:")
-    driver.webdriver_obj.webdriver.print_remote_drivers()
+    driver.webdriver_obj.print_remote_drivers()
 
 
 @cli_pydriver.command(short_help="Delete cache directory")
@@ -201,7 +201,7 @@ def install(
     :param arch: Architecture for requested WebDriver (default: current OS architecture
     """
     driver = _PyDriver(driver_type)
-    driver.webdriver_obj.get_driver(str(version), str(os_), str(arch))
+    driver.webdriver_obj.install_driver(str(version), str(os_), str(arch))
 
 
 @cli_pydriver.command(short_help="Delete given WebDriver or all installed WebDrivers")
