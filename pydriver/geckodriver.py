@@ -1,5 +1,4 @@
 import re
-from distutils.version import LooseVersion
 from typing import Dict
 
 from pydriver.config import WebDriverType, pydriver_config
@@ -47,25 +46,4 @@ class GeckoDriver(WebDriver):
 
     def update(self) -> None:
         """Replace currently installed version of geckodriver with newest available"""
-        self.logger.debug("Updating geckodriver")
-        driver_state = self.drivers_state.get(WebDriverType.GECKO.drv_name)
-        if not driver_state:
-            self.logger.info("Driver geckodriver is not installed")
-            return
-        local_version = driver_state.get("VERSION")
-        if not local_version:
-            self.logger.info("Corrupted .ini file")
-            return
-        self.get_remote_drivers_list()
-        remote_version = self.get_newest_version()
-        if not local_version:
-            self.support.exit("Corrupted .ini file")
-        if LooseVersion(local_version) >= LooseVersion(remote_version):
-            self.logger.info(
-                f"geckodriver is already in newest version. Local: {local_version}, remote: {remote_version}"
-            )
-        else:
-            os_ = self.drivers_state.get(WebDriverType.GECKO.drv_name, {}).get("OS")
-            arch = self.drivers_state.get(WebDriverType.GECKO.drv_name, {}).get("ARCHITECTURE")
-            self.install_driver(remote_version, os_, arch)
-            self.logger.info(f"Updated geckodriver: {local_version} -> {remote_version}")
+        self.generic_update(WebDriverType.GECKO.drv_name, self.get_remote_drivers_list, self.install_driver)

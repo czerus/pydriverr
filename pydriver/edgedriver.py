@@ -1,6 +1,5 @@
 import re
 import xml.etree.ElementTree as ET
-from distutils.version import LooseVersion
 
 from pydriver.config import WebDriverType, pydriver_config
 from pydriver.downloader import Downloader
@@ -39,24 +38,4 @@ class EdgeDriver(WebDriver):
 
     def update(self) -> None:
         """Replace currently installed version of edgedriver with newest available"""
-        self.logger.debug(f"Updating {WebDriverType.EDGE.drv_name}driver")
-        driver_state = self.drivers_state.get(WebDriverType.EDGE.drv_name)
-        if not driver_state:
-            self.logger.info(f"Driver {WebDriverType.EDGE.drv_name}driver is not installed")
-            return
-        local_version = driver_state.get("VERSION")
-        if not local_version:
-            self.logger.info("Corrupted .ini file")
-            return
-        self.get_remote_drivers_list()
-        remote_version = self.get_newest_version()
-        if LooseVersion(local_version) >= LooseVersion(remote_version):
-            self.logger.info(
-                f"{WebDriverType.EDGE.drv_name}driver is already in newest version. Local: {local_version}, "
-                f"remote: {remote_version}"
-            )
-        else:
-            os_ = self.drivers_state.get(WebDriverType.EDGE.drv_name, {}).get("OS")
-            arch = self.drivers_state.get(WebDriverType.EDGE.drv_name, {}).get("ARCHITECTURE")
-            self.install_driver(remote_version, os_, arch)
-            self.logger.info(f"Updated {WebDriverType.EDGE.drv_name}driver: {local_version} -> {remote_version}")
+        self.generic_update(WebDriverType.EDGE.drv_name, self.get_remote_drivers_list, self.install_driver)

@@ -14,6 +14,7 @@ from configobj import ConfigObj
 
 from pydriver.config import WebDriverType
 from pydriver.downloader import Downloader
+from pydriver.pydriver_types import FnInstallDriver, FnRemoteDriversList
 from pydriver.support import Support
 
 
@@ -243,3 +244,38 @@ class WebDriver:
                 values.append([version, os_, " ".join(os_data.keys())])
         values = sorted(values, key=lambda val: LooseVersion(val[0]))
         self.logger.info(tabulate.tabulate(values, headers=WebDriver._CONFIG_KEYS[1:4], showindex=True))
+
+    def generic_update(
+        self, driver_type: str, fn_get_remote_drivers_list: FnRemoteDriversList, fn_install_driver: FnInstallDriver
+    ) -> None:
+        """
+        Replace currently installed version of any WebDriver with newest available.
+
+        Generic method that handles all available WebDrivers due to ability to get as parameter methods specific
+        for given drivers.
+
+        :param driver_type: Type of the WebDriver e.g. chrome, gecko
+        :param fn_get_remote_drivers_list: Method `get_remote_drivers_list` for given WebDriver (from its class)
+        :param fn_install_driver: Method `install_driver` for given WebDriver (from its class)
+        """
+        self.logger.debug(f"Updating {driver_type}driver")
+        driver_state = self.drivers_state.get(driver_type)
+        if not driver_state:
+            self.logger.info(f"Driver {driver_type}driver is not installed")
+            return
+        local_version = driver_state.get("VERSION")
+        if not local_version:
+            self.logger.info("Corrupted .ini file")
+            return
+        fn_get_remote_drivers_list()
+        remote_version = self.get_newest_version()
+        if LooseVersion(local_version) >= LooseVersion(remote_version):
+            self.logger.info(
+                f"{driver_type}driver is already in newest version. "
+                f"Local: {local_version}, remote: {remote_version}"
+            )
+        else:
+            os_ = self.drivers_state.get(driver_type, {}).get("OS")
+            arch = self.drivers_state.get(driver_type, {}).get("ARCHITECTURE")
+            fn_install_driver(remote_version, os_, arch)
+            self.logger.info(f"Updated {driver_type}driver: {local_version} -> {remote_version}")
