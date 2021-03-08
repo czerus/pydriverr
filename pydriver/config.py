@@ -7,6 +7,7 @@ class WebDriverType(Enum):
     GECKO = ("gecko", ["geckodriver", "wires"])
     CHROME = ("chrome", ["chromedriver"])
     OPERA = ("opera", ["operadriver"])
+    EDGE = ("edge", ["msedgedriver", "edgewebdriver"])
 
     def __init__(self, drv_name, drv_file_names):
         self.drv_name = drv_name
@@ -33,5 +34,9 @@ pydriver_config = {
     },
     WebDriverType.OPERA: {
         "url": "https://github.com/{owner}/{repo}",
+    },
+    WebDriverType.EDGE: {
+        "url": "https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver",
+        "ignore_files": ["index.html", "LATEST_STABLE", "LATEST_UNKNOWN", "LICENSE", "LATEST_RELEASE", "credits.html"],
     },
 }
