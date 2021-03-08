@@ -1,0 +1,196 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<EnumerationResults ContainerName="https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/">
+    <Blobs>
+        <Blob>
+            <Name>75.0.139.20/edgedriver_mac64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/75.0.139.20/edgedriver_mac64.zip</Url>
+            <LastModified>Wed, 05 Jun 2019 17:28:54 GMT</LastModified>
+            <Etag>0x8D6E9DB48A93825</Etag>
+            <Size>12516713</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>75.0.139.20/edgedriver_win32.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/75.0.139.20/edgedriver_win32.zip</Url>
+            <LastModified>Wed, 05 Jun 2019 17:28:54 GMT</LastModified>
+            <Etag>0x8D6E9DB4858458B</Etag>
+            <Size>4566559</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>75.0.139.20/edgedriver_win64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/75.0.139.20/edgedriver_win64.zip</Url>
+            <LastModified>Wed, 05 Jun 2019 17:28:54 GMT</LastModified>
+            <Etag>0x8D6E9DB489CD917</Etag>
+            <Size>4765919</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>76.0.159.0/edgedriver_mac64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/76.0.159.0/edgedriver_mac64.zip</Url>
+            <LastModified>Wed, 05 Jun 2019 17:21:29 GMT</LastModified>
+            <Etag>0x8D6E9DA3F2434EA</Etag>
+            <Size>12613661</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>76.0.159.0/edgedriver_win32.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/76.0.159.0/edgedriver_win32.zip</Url>
+            <LastModified>Wed, 05 Jun 2019 17:21:28 GMT</LastModified>
+            <Etag>0x8D6E9DA3E973C17</Etag>
+            <Size>4604470</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>76.0.159.0/edgedriver_win64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/76.0.159.0/edgedriver_win64.zip</Url>
+            <LastModified>Wed, 05 Jun 2019 17:21:27 GMT</LastModified>
+            <Etag>0x8D6E9DA3E7330A2</Etag>
+            <Size>4801159</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>76.0.162.0/edgedriver_mac64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/76.0.162.0/edgedriver_mac64.zip</Url>
+            <LastModified>Wed, 05 Jun 2019 17:22:44 GMT</LastModified>
+            <Etag>0x8D6E9DA6C42414B</Etag>
+            <Size>12620437</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>76.0.162.0/edgedriver_win32.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/76.0.162.0/edgedriver_win32.zip</Url>
+            <LastModified>Wed, 05 Jun 2019 17:22:44 GMT</LastModified>
+            <Etag>0x8D6E9DA6C2B314C</Etag>
+            <Size>4603032</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>76.0.162.0/edgedriver_win64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/76.0.162.0/edgedriver_win64.zip</Url>
+            <LastModified>Wed, 05 Jun 2019 17:22:44 GMT</LastModified>
+            <Etag>0x8D6E9DA6BEC6B67</Etag>
+            <Size>4799179</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>76.0.165.0/edgedriver_win86.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/76.0.165.0/edgedriver_win86.zip</Url>
+            <LastModified>Wed, 05 Jun 2019 17:12:52 GMT</LastModified>
+            <Etag>0x8D6E9D90B57BC50</Etag>
+            <Size>4612602</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>90.0.817.0/edgedriver_arm64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/90.0.817.0/edgedriver_arm64.zip</Url>
+            <LastModified>Fri, 05 Mar 2021 18:29:24 GMT</LastModified>
+            <Etag>0x8D8E0049A2FABC6</Etag>
+            <Size>5938894</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>90.0.817.0/edgedriver_mac64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/90.0.817.0/edgedriver_mac64.zip</Url>
+            <LastModified>Fri, 05 Mar 2021 21:43:25 GMT</LastModified>
+            <Etag>0x8D8E01FB4A89F97</Etag>
+            <Size>9035983</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>90.0.817.0/edgedriver_win32.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/90.0.817.0/edgedriver_win32.zip</Url>
+            <LastModified>Fri, 05 Mar 2021 18:27:51 GMT</LastModified>
+            <Etag>0x8D8E00462E72D89</Etag>
+            <Size>6095347</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>90.0.817.0/edgedriver_win64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/90.0.817.0/edgedriver_win64.zip</Url>
+            <LastModified>Fri, 05 Mar 2021 18:29:18 GMT</LastModified>
+            <Etag>0x8D8E00496E42130</Etag>
+            <Size>6728750</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>90.0.818.0/edgedriver_arm64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/90.0.818.0/edgedriver_arm64.zip</Url>
+            <LastModified>Tue, 09 Mar 2021 19:51:11 GMT</LastModified>
+            <Etag>0x8D8E334B0AC0F9B</Etag>
+            <Size>5940016</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>90.0.818.0/edgedriver_linux64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/90.0.818.0/edgedriver_linux64.zip</Url>
+            <LastModified>Wed, 10 Mar 2021 03:07:41 GMT</LastModified>
+            <Etag>0x8D8E371AAEB2350</Etag>
+            <Size>7395845</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>90.0.818.0/edgedriver_mac64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/90.0.818.0/edgedriver_mac64.zip</Url>
+            <LastModified>Tue, 09 Mar 2021 22:00:10 GMT</LastModified>
+            <Etag>0x8D8E346B555E170</Etag>
+            <Size>9042778</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>90.0.818.0/edgedriver_win32.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/90.0.818.0/edgedriver_win32.zip</Url>
+            <LastModified>Tue, 09 Mar 2021 19:51:27 GMT</LastModified>
+            <Etag>0x8D8E334BA777B03</Etag>
+            <Size>6095835</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+        <Blob>
+            <Name>90.0.818.0/edgedriver_win64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/90.0.818.0/edgedriver_win64.zip</Url>
+            <LastModified>Tue, 09 Mar 2021 19:51:07 GMT</LastModified>
+            <Etag>0x8D8E334AE1D4B3A</Etag>
+            <Size>6729721</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
+    </Blobs>
+<NextMarker/>
+</EnumerationResults>

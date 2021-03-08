@@ -36,7 +36,7 @@ class _PyDriver:
         For methods that have context (run with option `-d`) init class for given driver type e.g. OperaDriver,
         ChromeDriver, GeckoDriver.
 
-        :param driver_type: Type of the WebDriver e.g. chrome, gecko
+        :param driver_type: Type of the WebDriver i.e. chrome, gecko, opera, edge
         :return: None
         """
         if not driver_type:
@@ -53,6 +53,10 @@ class _PyDriver:
             from pydriver.operadriver import OperaDriver
 
             self._webdriver_obj = OperaDriver()
+        elif driver_type == "edge":
+            from pydriver.edgedriver import EdgeDriver
+
+            self._webdriver_obj = EdgeDriver()
 
 
 @click.group()

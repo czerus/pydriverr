@@ -25,6 +25,8 @@ OPERA_URL = "https://github.com/operasoftware/operachromiumdriver"
 GECKO_API_URL = "https://api.github.com/repos/mozilla/geckodriver"
 OPERA_API_URL = "https://api.github.com/repos/operasoftware/operachromiumdriver"
 CHROME_URL = "https://chromedriver.storage.googleapis.com"
+EDGE_URL = "https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver"
+EDGE_API_URL = "https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/?comp=list"
 NOT_SUPPORTED = "not_supported"
 PYDRIVER_HOME = "pydriver_home"
 CACHE_DIR = ".pydriver_cache"
@@ -73,6 +75,22 @@ EXPECTED_OPERA = """    VERSION        OS     ARCHITECTURE
 15  88.0.4324.104  linux  64
 16  88.0.4324.104  mac    64
 17  88.0.4324.104  win    32 64"""
+EXPECTED_EDGE = """    VERSION      OS     ARCHITECTURE
+--  -----------  -----  --------------
+ 0  75.0.139.20  mac    64
+ 1  75.0.139.20  win    32 64
+ 2  76.0.159.0   mac    64
+ 3  76.0.159.0   win    32 64
+ 4  76.0.162.0   mac    64
+ 5  76.0.162.0   win    32 64
+ 6  76.0.165.0   win    86
+ 7  90.0.817.0   arm    64
+ 8  90.0.817.0   mac    64
+ 9  90.0.817.0   win    32 64
+10  90.0.818.0   arm    64
+11  90.0.818.0   linux  64
+12  90.0.818.0   mac    64
+13  90.0.818.0   win    32 64"""
 # TODO: possibly replace DRIVERS_CFG with small dicts anc create_custom_ini
 DRIVERS_CFG = {
     "chrome": [
@@ -140,12 +158,51 @@ DRIVERS_CFG = {
             "CHECKSUM": "96ef9b54ebd1240fdf96bfec97fdac93",
         },
     ],
+    "edge": [
+        {
+            "VERSION": "90.0.818.0",
+            "OS": "arm",
+            "ARCHITECTURE": "64",
+            "FILENAME": "msedgedriver.exe",
+            "CHECKSUM": "52f75e24f36f52725675542a179b1d68",
+        },
+        {
+            "VERSION": "90.0.818.0",
+            "OS": "linux",
+            "ARCHITECTURE": "64",
+            "FILENAME": "msedgedriver",
+            "CHECKSUM": "b91ecc20d0108f0a60d35c827cd9e384",
+        },
+        {
+            "VERSION": "90.0.818.0",
+            "OS": "mac",
+            "ARCHITECTURE": "64",
+            "FILENAME": "msedgedriver",
+            "CHECKSUM": "925f0d868bed41382a97d1fd39742b34",
+        },
+        {
+            "VERSION": "90.0.818.0",
+            "OS": "win",
+            "ARCHITECTURE": "64",
+            "FILENAME": "msedgedriver.exe",
+            "CHECKSUM": "648d1e0bc42a563fe92496efcad85bd9",
+        },
+        {
+            "VERSION": "90.0.818.0",
+            "OS": "win",
+            "ARCHITECTURE": "32",
+            "FILENAME": "msedgedriver.exe",
+            "CHECKSUM": "46920536a8723dc0a68dedc3bb0f0fba",
+            "IN_INI": True,
+        },
+    ],
 }
 
 DRIVERS_OTHER_FILES = {
     "chrome": [],
     "gecko": [],
     "opera": ["sha512_sum"],
+    "edge": [],
 }
 
 
@@ -275,7 +332,6 @@ def load_response(driver_type: str):
     with open(resource_path) as f:
         content = f.read()
     if driver_type in ["gecko", "opera"]:
-        print(json.loads(content))
         return json.loads(content)
     return content
 
@@ -425,7 +481,8 @@ class TestInstalledDrivers:
 --  -------------  -------------  ----  --------------  ----------------  --------------------------------
  0  chrome         81.0.4044.20   win               32  chromedriver.exe  56db17c16d7fc9003694a2a01e37dc87
  1  gecko          0.28.0         win               32  geckodriver.exe   56db17c16d7fc9003694a2a01e37dc87
- 2  opera          88.0.4324.104  win               32  operadriver.exe   c6847807558142bec4e1bcc70ffa2387"""
+ 2  opera          88.0.4324.104  win               32  operadriver.exe   c6847807558142bec4e1bcc70ffa2387
+ 3  edge           90.0.818.0     win               32  msedgedriver.exe  46920536a8723dc0a68dedc3bb0f0fba"""
         runner = CliRunner()
         pydriver.platform = mocker.Mock()
         pydriver.platform.uname.return_value = PlatformUname()
@@ -455,6 +512,12 @@ class TestListDrivers:
                 f"{OPERA_API_URL}/releases",
                 EXPECTED_OPERA,
                 {"json": load_response("opera")},
+            ),
+            (
+                "edge",
+                f"{EDGE_API_URL}",
+                EXPECTED_EDGE,
+                {"text": load_response("edge")},
             ),
         ],
     )
@@ -498,7 +561,12 @@ class TestDeleteDriver:
 
     @pytest.mark.parametrize(
         "driver_type, driver_file",
-        [("chrome", "chromedriver.exe"), ("gecko", "geckodriver.exe"), ("opera", "operadriver.exe")],
+        [
+            ("chrome", "chromedriver.exe"),
+            ("gecko", "geckodriver.exe"),
+            ("opera", "operadriver.exe"),
+            ("edge", "msedgedriver.exe"),
+        ],
     )
     def test_delete_driver_single_driver(
         self, driver_type, driver_file, tmpdir, test_dirs, env_vars, caplog, create_ini
@@ -547,6 +615,14 @@ class TestDeleteDriver:
                 "ARCHITECTURE": "32",
                 "FILENAME": "operadriver.exe",
                 "CHECKSUM": "c6847807558142bec4e1bcc70ffa2387",
+                "IN_INI": "True",
+            },
+            "edge": {
+                "VERSION": "90.0.818.0",
+                "OS": "win",
+                "ARCHITECTURE": "32",
+                "FILENAME": "msedgedriver.exe",
+                "CHECKSUM": "46920536a8723dc0a68dedc3bb0f0fba",
                 "IN_INI": "True",
             },
         }
@@ -634,6 +710,36 @@ class TestInstallDriver:
                 "mac",
                 "64",
             ),
+            (
+                "edge",
+                {"url": f"{EDGE_API_URL}", "kwargs": {"text": load_response("edge")}},
+                {"url": f"{EDGE_URL}/" + "{version}/{name}"},
+                "90.0.818.0",
+                "msedgedriver.exe",
+                "edgedriver_win64.zip",
+                "win",
+                "64",
+            ),
+            (
+                "edge",
+                {"url": f"{EDGE_API_URL}", "kwargs": {"text": load_response("edge")}},
+                {"url": f"{EDGE_URL}/" + "{version}/{name}"},
+                "90.0.818.0",
+                "msedgedriver.exe",
+                "edgedriver_arm64.zip",
+                "arm",
+                "64",
+            ),
+            (
+                "edge",
+                {"url": f"{EDGE_API_URL}", "kwargs": {"text": load_response("edge")}},
+                {"url": f"{EDGE_URL}/" + "{version}/{name}"},
+                "90.0.818.0",
+                "msedgedriver",
+                "edgedriver_mac64.zip",
+                "mac",
+                "64",
+            ),
         ],
     )
     def test_install_driver_newest_version_not_in_cache(
@@ -681,6 +787,7 @@ class TestInstallDriver:
             ("chrome", {CHROME_URL: {"text": load_response("chrome")}}, "71.0.3578.33"),
             ("gecko", {GECKO_API_URL + "/releases": {"json": load_response("gecko")}}, "0.28.0"),
             ("opera", {OPERA_API_URL + "/releases": {"json": load_response("opera")}}, "88.0.4324.104"),
+            ("edge", {EDGE_API_URL: {"text": load_response("edge")}}, "90.0.818.0"),
         ],
     )
     def test_install_driver_invalid_os(
@@ -702,6 +809,7 @@ class TestInstallDriver:
             ("chrome", {CHROME_URL: {"text": load_response("chrome")}}, "1.1.1.1"),
             ("gecko", {GECKO_API_URL + "/releases": {"json": load_response("gecko")}}, "1.1.1.1"),
             ("opera", {OPERA_API_URL + "/releases": {"json": load_response("opera")}}, "1.1.1.1"),
+            ("edge", {EDGE_API_URL: {"text": load_response("edge")}}, "1.1.1.1"),
         ],
     )
     def test_install_driver_invalid_version(
@@ -721,6 +829,7 @@ class TestInstallDriver:
             ("chrome", {CHROME_URL: {"text": load_response("chrome")}}, "71.0.3578.33"),
             ("gecko", {GECKO_API_URL + "/releases": {"json": load_response("gecko")}}, "0.28.0"),
             ("opera", {OPERA_API_URL + "/releases": {"json": load_response("opera")}}, "88.0.4324.104"),
+            ("edge", {EDGE_API_URL: {"text": load_response("edge")}}, "90.0.818.0"),
         ],
     )
     def test_install_driver_invalid_arch(
@@ -742,6 +851,7 @@ class TestInstallDriver:
             ("chrome", {CHROME_URL: {"text": load_response("chrome")}}, "81.0.4044.20"),
             ("gecko", {GECKO_API_URL + "/releases": {"json": load_response("gecko")}}, "0.28.0"),
             ("opera", {OPERA_API_URL + "/releases": {"json": load_response("opera")}}, "88.0.4324.104"),
+            ("edge", {EDGE_API_URL: {"text": load_response("edge")}}, "90.0.818.0"),
         ],
     )
     def test_install_driver_already_installed(
@@ -836,6 +946,46 @@ class TestInstallDriver:
                 "87.0.4280.67",
                 "mac",
                 "64",
+            ),
+            (
+                "edge",
+                "msedgedriver.exe",
+                "edgedriver_win64.zip",
+                {"url": EDGE_API_URL, "kwargs": {"text": load_response("edge")}},
+                {"url": f"{EDGE_URL}/" + "{version}/{name}"},
+                "90.0.817.0",
+                "win",
+                "64",
+            ),
+            (
+                "edge",
+                "msedgedriver",
+                "edgedriver_mac64.zip",
+                {"url": EDGE_API_URL, "kwargs": {"text": load_response("edge")}},
+                {"url": f"{EDGE_URL}/" + "{version}/{name}"},
+                "90.0.817.0",
+                "mac",
+                "64",
+            ),
+            (
+                "edge",
+                "msedgedriver.exe",
+                "edgedriver_arm64.zip",
+                {"url": EDGE_API_URL, "kwargs": {"text": load_response("edge")}},
+                {"url": f"{EDGE_URL}/" + "{version}/{name}"},
+                "90.0.817.0",
+                "arm",
+                "64",
+            ),
+            (
+                "edge",
+                "msedgedriver.exe",
+                "edgedriver_win86.zip",
+                {"url": EDGE_API_URL, "kwargs": {"text": load_response("edge")}},
+                {"url": f"{EDGE_URL}/" + "{version}/{name}"},
+                "76.0.165.0",
+                "win",
+                "86",
             ),
         ],
     )
@@ -941,6 +1091,33 @@ class TestInstallDriver:
                 "mac",
                 "64",
             ),
+            (
+                "edge",
+                "msedgedriver.exe",
+                "edgedriver_win64.zip",
+                {"url": EDGE_API_URL, "kwargs": {"text": load_response("edge")}},
+                "90.0.818.0",
+                "win",
+                "64",
+            ),
+            (
+                "edge",
+                "msedgedriver",
+                "edgedriver_mac64.zip",
+                {"url": EDGE_API_URL, "kwargs": {"text": load_response("edge")}},
+                "90.0.818.0",
+                "mac",
+                "64",
+            ),
+            (
+                "edge",
+                "msedgedriver.exe",
+                "edgedriver_arm64.zip",
+                {"url": EDGE_API_URL, "kwargs": {"text": load_response("edge")}},
+                "90.0.818.0",
+                "arm",
+                "64",
+            ),
         ],
     )
     def test_install_driver_from_cache(
@@ -1024,6 +1201,17 @@ class TestUpdate:
                 "win",
                 "64",
             ),
+            (
+                "edge",
+                "msedgedriver.exe",
+                "edgedriver_win64.zip",
+                {"url": EDGE_API_URL, "kwargs": {"text": load_response("edge")}},
+                {"url": f"{EDGE_URL}/" + "{version}/{name}"},
+                "76.0.162.0",
+                "90.0.818.0",
+                "win",
+                "64",
+            ),
         ],
     )
     def test_update_single_driver(
@@ -1097,6 +1285,15 @@ class TestUpdate:
                 "linux",
                 "64",
             ),
+            (
+                "edge",
+                "msedgedriver.exe",
+                "edgedriver_win64.zip",
+                {"url": EDGE_API_URL, "kwargs": {"text": load_response("edge")}},
+                "90.0.818.0",
+                "win",
+                "64",
+            ),
         ],
     )
     def test_update_no_new_version(
@@ -1135,6 +1332,7 @@ class TestUpdate:
             "chrome",
             "gecko",
             "opera",
+            "edge",
         ],
     )
     def test_update_driver_not_in_ini(self, driver_type, tmpdir, test_dirs, env_vars, caplog, empty_ini):
@@ -1152,6 +1350,7 @@ class TestUpdate:
             "chrome",
             "gecko",
             "opera",
+            "edge",
         ],
     )
     def test_update_driver_corrupted_ini(
