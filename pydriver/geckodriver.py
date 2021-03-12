@@ -32,18 +32,18 @@ class GeckoDriver(WebDriver):
                         filename=filename,
                     )
 
-    def install_driver(self, version: str, os_: str, arch: str) -> None:
+    def get_remote_drivers_list(self) -> None:
+        releases = self.githubapi.get_releases()
+        self._parse_version_os_arch(releases)
+
+    def install(self, version: str, os_: str, arch: str) -> None:
         self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
         self.get_remote_drivers_list()
         version, os_, arch, file_name = self.validate_version_os_arch(WebDriverType.GECKO.drv_name, version, os_, arch)
         url = pydriver_config[WebDriverType.GECKO]["url"].format(owner=self.__OWNER, repo=self.__REPO)
         url = url + f"/releases/download/v{version}/{file_name}"
-        self._install_driver("gecko", url, version, os_, arch, file_name)
-
-    def get_remote_drivers_list(self) -> None:
-        releases = self.githubapi.get_releases()
-        self._parse_version_os_arch(releases)
+        self.install_driver("gecko", url, version, os_, arch, file_name)
 
     def update(self) -> None:
         """Replace currently installed version of geckodriver with newest available"""
-        self.generic_update(WebDriverType.GECKO.drv_name, self.get_remote_drivers_list, self.install_driver)
+        self.generic_update(WebDriverType.GECKO.drv_name, self.get_remote_drivers_list, self.install)
