@@ -23,13 +23,6 @@ class ChromeDriver(WebDriver):
                 version=str(match.group(1)), os_=os_, arch=arch, filename=f"chromedriver_{os_}{arch}.zip"
             )
 
-    def install_driver(self, version: str, os_: str, arch: str) -> None:
-        self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
-        self.get_remote_drivers_list()
-        version, os_, arch, file_name = self.validate_version_os_arch("chrome", version, os_, arch)
-        url = f"{pydriver_config[WebDriverType.CHROME]['url']}/{version}/{file_name}"
-        self._install_driver("chrome", url, version, os_, arch, file_name)
-
     def get_remote_drivers_list(self) -> None:
         # {8.1: {linux: [32, 64]}}
         r = self.downloader.get_url(pydriver_config[WebDriverType.CHROME]["url"])
@@ -38,6 +31,13 @@ class ChromeDriver(WebDriver):
         for key in root.iter(f"{ns}Key"):
             self._parse_version_os_arch(key.text)
 
+    def install(self, version: str, os_: str, arch: str) -> None:
+        self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
+        self.get_remote_drivers_list()
+        version, os_, arch, file_name = self.validate_version_os_arch("chrome", version, os_, arch)
+        url = f"{pydriver_config[WebDriverType.CHROME]['url']}/{version}/{file_name}"
+        self.install_driver("chrome", url, version, os_, arch, file_name)
+
     def update(self) -> None:
         """Replace currently installed version of chromedriver with newest available"""
-        self.generic_update(WebDriverType.CHROME.drv_name, self.get_remote_drivers_list, self.install_driver)
+        self.generic_update(WebDriverType.CHROME.drv_name, self.get_remote_drivers_list, self.install)
