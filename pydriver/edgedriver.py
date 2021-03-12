@@ -23,19 +23,19 @@ class EdgeDriver(WebDriver):
                 version=str(match.group(1)), os_=os_, arch=arch, filename=f"edgedriver_{os_}{arch}.zip"
             )
 
-    def install_driver(self, version: str, os_: str, arch: str) -> None:
-        self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
-        self.get_remote_drivers_list()
-        version, os_, arch, file_name = self.validate_version_os_arch(WebDriverType.EDGE.drv_name, version, os_, arch)
-        url = f"{pydriver_config[WebDriverType.EDGE]['url']}/{version}/{file_name}"
-        self._install_driver(WebDriverType.EDGE.drv_name, url, version, os_, arch, file_name)
-
     def get_remote_drivers_list(self) -> None:
         r = self.downloader.get_url(f'{pydriver_config[WebDriverType.EDGE]["url"]}/?comp=list')
         root = ET.fromstring(r.content)
         for key in root.iter("Name"):
             self._parse_version_os_arch(key.text)
 
+    def install(self, version: str, os_: str, arch: str) -> None:
+        self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
+        self.get_remote_drivers_list()
+        version, os_, arch, file_name = self.validate_version_os_arch(WebDriverType.EDGE.drv_name, version, os_, arch)
+        url = f"{pydriver_config[WebDriverType.EDGE]['url']}/{version}/{file_name}"
+        self.install_driver(WebDriverType.EDGE.drv_name, url, version, os_, arch, file_name)
+
     def update(self) -> None:
         """Replace currently installed version of edgedriver with newest available"""
-        self.generic_update(WebDriverType.EDGE.drv_name, self.get_remote_drivers_list, self.install_driver)
+        self.generic_update(WebDriverType.EDGE.drv_name, self.get_remote_drivers_list, self.install)

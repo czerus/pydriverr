@@ -201,7 +201,7 @@ def install(
     :param arch: Architecture for requested WebDriver (default: current OS architecture
     """
     driver = _PyDriver(driver_type)
-    driver.webdriver_obj.install_driver(str(version), str(os_), str(arch))
+    driver.webdriver_obj.install(str(version), str(os_), str(arch))
 
 
 @cli_pydriver.command(short_help="Delete given WebDriver or all installed WebDrivers")

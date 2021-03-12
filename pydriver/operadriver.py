@@ -32,7 +32,12 @@ class OperaDriver(WebDriver):
                         filename=filename,
                     )
 
-    def install_driver(self, version: str, os_: str, arch: str) -> None:
+    def get_remote_drivers_list(self) -> None:
+        """Get remote repository drivers list"""
+        releases = self.githubapi.get_releases()
+        self._parse_version_os_arch(releases)
+
+    def install(self, version: str, os_: str, arch: str) -> None:
         """Compose url and download compressed file"""
         self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
         self.get_remote_drivers_list()
@@ -43,13 +48,8 @@ class OperaDriver(WebDriver):
         else:
             prefix = "v."
         url = url + f"/releases/download/{prefix}{version}/{file_name}"
-        self._install_driver(WebDriverType.OPERA.drv_name, url, version, os_, arch, file_name)
-
-    def get_remote_drivers_list(self) -> None:
-        """Get remote repository drivers list"""
-        releases = self.githubapi.get_releases()
-        self._parse_version_os_arch(releases)
+        self.install_driver(WebDriverType.OPERA.drv_name, url, version, os_, arch, file_name)
 
     def update(self) -> None:
         """Replace currently installed version of operadriver with newest available"""
-        self.generic_update(WebDriverType.OPERA.drv_name, self.get_remote_drivers_list, self.install_driver)
+        self.generic_update(WebDriverType.OPERA.drv_name, self.get_remote_drivers_list, self.install)
