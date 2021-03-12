@@ -7,20 +7,28 @@ from pydriver.webdriver import WebDriver
 
 
 class EdgeDriver(WebDriver):
+    """Handle Edge WebDriver"""
+
     def __init__(self):
         super().__init__()
         self.downloader = Downloader()
 
-    def _parse_version_os_arch(self, webdriver_filename: str) -> None:
+    def _parse_version_os_arch(self, file_name: str) -> None:
+        """
+        Parse edgedriver compressed file name
+
+        :param file_name: Dict from GitHub API containing information about every release.
+        :return: None
+        """
         match = re.match(
             r"(([0-9]+\.){1,3}[0-9]+).*/edgedriver_(linux|win|mac|arm)(32|64|86)\.zip",
-            webdriver_filename,
+            file_name,
         )
         if match:
             os_ = str(match.group(3))
             arch = str(match.group(4))
             self.update_version_dict(
-                version=str(match.group(1)), os_=os_, arch=arch, filename=f"edgedriver_{os_}{arch}.zip"
+                version=str(match.group(1)), os_=os_, arch=arch, file_name=f"edgedriver_{os_}{arch}.zip"
             )
 
     def get_remote_drivers_list(self) -> None:
@@ -37,5 +45,4 @@ class EdgeDriver(WebDriver):
         self.install_driver(WebDriverType.EDGE.drv_name, url, version, os_, arch, file_name)
 
     def update(self) -> None:
-        """Replace currently installed version of edgedriver with newest available"""
         self.generic_update(WebDriverType.EDGE.drv_name, self.get_remote_drivers_list, self.install)

@@ -9,18 +9,26 @@ class WebDriverType(Enum):
     OPERA = ("opera", ["operadriver"])
     EDGE = ("edge", ["msedgedriver", "edgewebdriver"])
 
-    def __init__(self, drv_name, drv_file_names):
+    def __init__(self, drv_name: str, drv_file_names: List[str]):
         self.drv_name = drv_name
         self.drv_file_names = drv_file_names
 
     @staticmethod
     def list() -> List[str]:
-        """Return list of supported WebDriver types"""
+        """
+        Return list of supported WebDriver types
+
+        :return: List of all drv_names in enum
+        """
         return list(map(lambda c: c.drv_name, WebDriverType))
 
     @staticmethod
     def list_all_file_names() -> List[str]:
-        """Return list of WebDriver file names"""
+        """
+        Return list of WebDriver file names
+
+        :return: List of all drv_file_names in enum
+        """
         return list(itertools.chain(*list(map(lambda c: c.drv_file_names, WebDriverType))))
 
 
