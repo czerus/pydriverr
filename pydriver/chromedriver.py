@@ -34,9 +34,9 @@ class ChromeDriver(WebDriver):
     def install(self, version: str, os_: str, arch: str) -> None:
         self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
         self.get_remote_drivers_list()
-        version, os_, arch, file_name = self.validate_version_os_arch("chrome", version, os_, arch)
+        version, os_, arch, file_name = self.validate_version_os_arch(WebDriverType.CHROME.drv_name, version, os_, arch)
         url = f"{pydriver_config[WebDriverType.CHROME]['url']}/{version}/{file_name}"
-        self.install_driver("chrome", url, version, os_, arch, file_name)
+        self.install_driver(WebDriverType.CHROME.drv_name, url, version, os_, arch, file_name)
 
     def update(self) -> None:
         """Replace currently installed version of chromedriver with newest available"""
