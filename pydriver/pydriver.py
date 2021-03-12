@@ -1,12 +1,11 @@
 import os
 import tempfile
-from typing import Tuple, Union
 
 import click
 
 from pydriver.config import WebDriverType
 from pydriver.logger import Logger
-from pydriver.pydriver_types import StrOrNone
+from pydriver.pydriver_types import Drivers, OptionalString, Version
 from pydriver.support import Support
 from pydriver.webdriver import WebDriver
 
@@ -16,7 +15,7 @@ __all__ = ["cli_pydriver", "install", "delete", "update", "show_env", "show_inst
 class _PyDriver:
     """Provide main functionality of pydriver by initing all the required subclasses in proper way"""
 
-    def __init__(self, driver_type: StrOrNone = None):
+    def __init__(self, driver_type: OptionalString = None):
         log_path = os.path.join(tempfile.gettempdir(), "pydriver.log")
         self.logger = Logger(log_path).configure_logging()
         self.support = Support()
@@ -28,7 +27,7 @@ class _PyDriver:
         return self._webdriver_obj
 
     @webdriver_obj.setter
-    def webdriver_obj(self, driver_type: StrOrNone) -> None:
+    def webdriver_obj(self, driver_type: OptionalString) -> None:
         """
         Init WebDriver like object.
 
@@ -169,7 +168,7 @@ def clear_cache() -> None:
 @click.option("-a", "--arch", default="", help="Architecture for requested WebDriver (default: current OS architecture")
 def install(
     driver_type: str,
-    version: Union[str, float, int] = "",
+    version: Version = "",
     os_: str = "",
     arch: str = "",
 ) -> None:
@@ -213,7 +212,7 @@ def install(
     default="",
     help="Type of the WebDriver e.g. chrome, gecko",
 )
-def delete(driver_type: Tuple[str]) -> None:
+def delete(driver_type: Drivers) -> None:
     """
     Delete given WebDriver or all installed WebDrivers
 
@@ -246,7 +245,7 @@ def delete(driver_type: Tuple[str]) -> None:
     default="",
     help="Type of the WebDriver e.g. chrome, gecko",
 )
-def update(driver_type: Tuple[str]) -> None:
+def update(driver_type: Drivers) -> None:
     """
     Update given WebDriver or all installed WebDrivers
 
