@@ -7,24 +7,31 @@ from pydriver.webdriver import WebDriver
 
 
 class ChromeDriver(WebDriver):
+    """Handle Chrome WebDriver"""
+
     def __init__(self):
         super().__init__()
         self.downloader = Downloader()
 
-    def _parse_version_os_arch(self, webdriver_filename: str) -> None:
+    def _parse_version_os_arch(self, file_name: str) -> None:
+        """
+        Parse chromedriver compressed file name
+
+        :param file_name: Name of the compressed file.
+        :return: None
+        """
         match = re.match(
             r"(([0-9]+\.){1,3}[0-9]+).*/chromedriver_(linux|win|mac)(32|64)\.zip",
-            webdriver_filename,
+            file_name,
         )
         if match:
             os_ = str(match.group(3))
             arch = str(match.group(4))
             self.update_version_dict(
-                version=str(match.group(1)), os_=os_, arch=arch, filename=f"chromedriver_{os_}{arch}.zip"
+                version=str(match.group(1)), os_=os_, arch=arch, file_name=f"chromedriver_{os_}{arch}.zip"
             )
 
     def get_remote_drivers_list(self) -> None:
-        # {8.1: {linux: [32, 64]}}
         r = self.downloader.get_url(pydriver_config[WebDriverType.CHROME]["url"])
         root = ET.fromstring(r.content)
         ns = root.tag.replace("ListBucketResult", "")
@@ -39,5 +46,4 @@ class ChromeDriver(WebDriver):
         self.install_driver(WebDriverType.CHROME.drv_name, url, version, os_, arch, file_name)
 
     def update(self) -> None:
-        """Replace currently installed version of chromedriver with newest available"""
         self.generic_update(WebDriverType.CHROME.drv_name, self.get_remote_drivers_list, self.install)

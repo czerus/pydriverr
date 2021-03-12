@@ -7,6 +7,8 @@ from pydriver.webdriver import WebDriver
 
 
 class OperaDriver(WebDriver):
+    """Handle Opera WebDriver"""
+
     __OWNER = "operasoftware"
     __REPO = "operachromiumdriver"
 
@@ -15,7 +17,12 @@ class OperaDriver(WebDriver):
         self.githubapi = GithubApi(self.__OWNER, self.__REPO)
 
     def _parse_version_os_arch(self, releases_info: Dict) -> None:
-        """Parse operadriver compressed file name"""
+        """
+        Parse operadriver compressed file name
+
+        :param releases_info: Dict from GitHub API containing information about every release. Key is version tag.
+        :return: None
+        """
         for version_tag, filenames in releases_info.items():
             for filename in filenames:
                 match = re.match(
@@ -29,16 +36,14 @@ class OperaDriver(WebDriver):
                         version=version.group(0),
                         os_=os_,
                         arch=str(match.group(3)),
-                        filename=filename,
+                        file_name=filename,
                     )
 
     def get_remote_drivers_list(self) -> None:
-        """Get remote repository drivers list"""
         releases = self.githubapi.get_releases()
         self._parse_version_os_arch(releases)
 
     def install(self, version: str, os_: str, arch: str) -> None:
-        """Compose url and download compressed file"""
         self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
         self.get_remote_drivers_list()
         version, os_, arch, file_name = self.validate_version_os_arch(WebDriverType.OPERA.drv_name, version, os_, arch)
@@ -51,5 +56,4 @@ class OperaDriver(WebDriver):
         self.install_driver(WebDriverType.OPERA.drv_name, url, version, os_, arch, file_name)
 
     def update(self) -> None:
-        """Replace currently installed version of operadriver with newest available"""
         self.generic_update(WebDriverType.OPERA.drv_name, self.get_remote_drivers_list, self.install)

@@ -7,6 +7,7 @@ from pydriver.webdriver import WebDriver
 
 
 class GeckoDriver(WebDriver):
+    """Handle Gecko WebDriver"""
 
     __OWNER = "mozilla"
     __REPO = "geckodriver"
@@ -16,6 +17,12 @@ class GeckoDriver(WebDriver):
         self.githubapi = GithubApi(self.__OWNER, self.__REPO)
 
     def _parse_version_os_arch(self, releases_info: Dict) -> None:
+        """
+        Parse geckodriver compressed file name
+
+        :param releases_info: Dict from GitHub API containing information about every release. Key is version tag.
+        :return: None
+        """
         for version_tag, filenames in releases_info.items():
             for filename in filenames:
                 match = re.match(
@@ -29,7 +36,7 @@ class GeckoDriver(WebDriver):
                         version=version_tag.replace("v", ""),
                         os_="mac" if os_.lower() in ["osx", "mac", "macos"] else os_,
                         arch=str(match.group(3) or ""),
-                        filename=filename,
+                        file_name=filename,
                     )
 
     def get_remote_drivers_list(self) -> None:
@@ -45,5 +52,4 @@ class GeckoDriver(WebDriver):
         self.install_driver("gecko", url, version, os_, arch, file_name)
 
     def update(self) -> None:
-        """Replace currently installed version of geckodriver with newest available"""
         self.generic_update(WebDriverType.GECKO.drv_name, self.get_remote_drivers_list, self.install)
