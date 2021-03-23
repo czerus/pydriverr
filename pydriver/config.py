@@ -1,17 +1,30 @@
 import itertools
 from enum import Enum
-from typing import List
+from typing import List, Union
 
 
 class WebDriverType(Enum):
-    GECKO = ("gecko", ["geckodriver", "wires"])
-    CHROME = ("chrome", ["chromedriver"])
-    OPERA = ("opera", ["operadriver"])
-    EDGE = ("edge", ["msedgedriver", "edgewebdriver"])
 
-    def __init__(self, drv_name: str, drv_file_names: List[str]):
+    GECKO = ("gecko", ["geckodriver", "wires"], "https://github.com/{owner}/{repo}")
+    CHROME = (
+        "chrome",
+        ["chromedriver"],
+        "https://chromedriver.storage.googleapis.com",
+        ["index.html", "notes", "Parent Directory", "icons", "LATEST_RELEASE"],
+    )
+    OPERA = ("opera", ["operadriver"], "https://github.com/{owner}/{repo}")
+    EDGE = (
+        "edge",
+        ["msedgedriver", "edgewebdriver"],
+        "https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver",
+        ["index.html", "LATEST_STABLE", "LATEST_UNKNOWN", "LICENSE", "LATEST_RELEASE", "credits.html"],
+    )
+
+    def __init__(self, drv_name: str, drv_file_names: List[str], url: str, ignore_files: Union[None, List[str]] = None):
         self.drv_name = drv_name
         self.drv_file_names = drv_file_names
+        self.url = url
+        self.ignore_files = ignore_files
 
     @staticmethod
     def list() -> List[str]:
@@ -30,21 +43,3 @@ class WebDriverType(Enum):
         :return: List of all drv_file_names in enum
         """
         return list(itertools.chain(*list(map(lambda c: c.drv_file_names, WebDriverType))))
-
-
-pydriver_config = {
-    WebDriverType.CHROME: {
-        "url": "https://chromedriver.storage.googleapis.com",
-        "ignore_files": ["index.html", "notes", "Parent Directory", "icons", "LATEST_RELEASE"],
-    },
-    WebDriverType.GECKO: {
-        "url": "https://github.com/{owner}/{repo}",
-    },
-    WebDriverType.OPERA: {
-        "url": "https://github.com/{owner}/{repo}",
-    },
-    WebDriverType.EDGE: {
-        "url": "https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver",
-        "ignore_files": ["index.html", "LATEST_STABLE", "LATEST_UNKNOWN", "LICENSE", "LATEST_RELEASE", "credits.html"],
-    },
-}

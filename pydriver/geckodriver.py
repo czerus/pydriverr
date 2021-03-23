@@ -1,7 +1,7 @@
 import re
 from typing import Dict
 
-from pydriver.config import WebDriverType, pydriver_config
+from pydriver.config import WebDriverType
 from pydriver.githubapi import GithubApi
 from pydriver.webdriver import WebDriver
 
@@ -47,7 +47,7 @@ class GeckoDriver(WebDriver):
         self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
         self.get_remote_drivers_list()
         version, os_, arch, file_name = self.validate_version_os_arch(WebDriverType.GECKO.drv_name, version, os_, arch)
-        url = pydriver_config[WebDriverType.GECKO]["url"].format(owner=self.__OWNER, repo=self.__REPO)
+        url = WebDriverType.GECKO.url.format(owner=self.__OWNER, repo=self.__REPO)
         url = url + f"/releases/download/v{version}/{file_name}"
         self.install_driver("gecko", url, version, os_, arch, file_name)
 

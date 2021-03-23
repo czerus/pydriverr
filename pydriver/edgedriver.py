@@ -1,7 +1,7 @@
 import re
 import xml.etree.ElementTree as ET
 
-from pydriver.config import WebDriverType, pydriver_config
+from pydriver.config import WebDriverType
 from pydriver.downloader import Downloader
 from pydriver.webdriver import WebDriver
 
@@ -32,7 +32,7 @@ class EdgeDriver(WebDriver):
             )
 
     def get_remote_drivers_list(self) -> None:
-        r = self.downloader.get_url(f'{pydriver_config[WebDriverType.EDGE]["url"]}/?comp=list')
+        r = self.downloader.get_url(f"{WebDriverType.EDGE.url}/?comp=list")
         root = ET.fromstring(r.content)
         for key in root.iter("Name"):
             self._parse_version_os_arch(key.text)
@@ -41,7 +41,7 @@ class EdgeDriver(WebDriver):
         self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
         self.get_remote_drivers_list()
         version, os_, arch, file_name = self.validate_version_os_arch(WebDriverType.EDGE.drv_name, version, os_, arch)
-        url = f"{pydriver_config[WebDriverType.EDGE]['url']}/{version}/{file_name}"
+        url = f"{WebDriverType.EDGE.url}/{version}/{file_name}"
         self.install_driver(WebDriverType.EDGE.drv_name, url, version, os_, arch, file_name)
 
     def update(self) -> None:

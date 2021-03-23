@@ -1,7 +1,7 @@
 import re
 import xml.etree.ElementTree as ET
 
-from pydriver.config import WebDriverType, pydriver_config
+from pydriver.config import WebDriverType
 from pydriver.downloader import Downloader
 from pydriver.webdriver import WebDriver
 
@@ -32,7 +32,7 @@ class ChromeDriver(WebDriver):
             )
 
     def get_remote_drivers_list(self) -> None:
-        r = self.downloader.get_url(pydriver_config[WebDriverType.CHROME]["url"])
+        r = self.downloader.get_url(WebDriverType.CHROME.url)
         root = ET.fromstring(r.content)
         ns = root.tag.replace("ListBucketResult", "")
         for key in root.iter(f"{ns}Key"):
@@ -42,7 +42,7 @@ class ChromeDriver(WebDriver):
         self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
         self.get_remote_drivers_list()
         version, os_, arch, file_name = self.validate_version_os_arch(WebDriverType.CHROME.drv_name, version, os_, arch)
-        url = f"{pydriver_config[WebDriverType.CHROME]['url']}/{version}/{file_name}"
+        url = f"{WebDriverType.CHROME.url}/{version}/{file_name}"
         self.install_driver(WebDriverType.CHROME.drv_name, url, version, os_, arch, file_name)
 
     def update(self) -> None:
