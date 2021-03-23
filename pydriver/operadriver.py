@@ -1,7 +1,7 @@
 import re
 from typing import Dict
 
-from pydriver.config import WebDriverType, pydriver_config
+from pydriver.config import WebDriverType
 from pydriver.githubapi import GithubApi
 from pydriver.webdriver import WebDriver
 
@@ -47,7 +47,7 @@ class OperaDriver(WebDriver):
         self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
         self.get_remote_drivers_list()
         version, os_, arch, file_name = self.validate_version_os_arch(WebDriverType.OPERA.drv_name, version, os_, arch)
-        url = pydriver_config[WebDriverType.OPERA]["url"].format(owner=self.__OWNER, repo=self.__REPO)
+        url = WebDriverType.OPERA.url.format(owner=self.__OWNER, repo=self.__REPO)
         if version[0] == "0":  # old version "0.x.x" instead v. have just v
             prefix = "v"
         else:
