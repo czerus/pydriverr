@@ -1,6 +1,6 @@
 import itertools
 from enum import Enum
-from typing import List, Union
+from typing import List
 
 
 class WebDriverType(Enum):
@@ -10,21 +10,18 @@ class WebDriverType(Enum):
         "chrome",
         ["chromedriver"],
         "https://chromedriver.storage.googleapis.com",
-        ["index.html", "notes", "Parent Directory", "icons", "LATEST_RELEASE"],
     )
     OPERA = ("opera", ["operadriver"], "https://github.com/{owner}/{repo}")
     EDGE = (
         "edge",
         ["msedgedriver", "edgewebdriver"],
         "https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver",
-        ["index.html", "LATEST_STABLE", "LATEST_UNKNOWN", "LICENSE", "LATEST_RELEASE", "credits.html"],
     )
 
-    def __init__(self, drv_name: str, drv_file_names: List[str], url: str, ignore_files: Union[None, List[str]] = None):
+    def __init__(self, drv_name: str, drv_file_names: List[str], url: str):
         self.drv_name = drv_name
         self.drv_file_names = drv_file_names
         self.url = url
-        self.ignore_files = ignore_files
 
     @staticmethod
     def list() -> List[str]:
