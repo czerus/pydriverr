@@ -25,11 +25,14 @@ class Downloader:
         :return: Whole request `Response` object
         """
         self._logger.debug(f"Downloading: {url}")
-        r = self._session.get(url, stream=stream)
-        if r.status_code == 200:
-            return r
-        else:
-            self._support.exit(f"Cannot download file {url}")
+        try:
+            r = self._session.get(url, stream=stream)
+            if r.status_code == 200:
+                return r
+            else:
+                self._support.exit(f"Cannot download file {url}")
+        except requests.exceptions.ConnectTimeout:
+            self._support.exit("Connection error")
 
     def dl_driver(self, url: str, dst: Path) -> None:
         """

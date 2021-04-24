@@ -142,6 +142,6 @@ $ pydriver show-env
     ```
 7. Run all tests with coverage:
    ```bash
-   $ python3 -m pytest tests --cov=pydriver --cov-report html --cov-report term
+   $ python3 -m pytest tests --cov=pydriver --cov-report html --cov-report term -vv
    ```
 6. Commit and push
