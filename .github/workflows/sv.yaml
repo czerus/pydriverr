@@ -47,7 +47,7 @@ jobs:
     - name: Test
       run: |
         source $HOME/.poetry/env
-        poetry run pytest tests/ --cov=pydriver --cov-report html --cov-report term
+        poetry run pytest tests/ --cov=pydriver --cov-report html --cov-report term -vv
     - name: Build wheel
       run: |
         source $HOME/.poetry/env
