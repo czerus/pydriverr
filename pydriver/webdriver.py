@@ -53,6 +53,12 @@ class WebDriver:
 
     @system_arch.setter
     def system_arch(self, system_arch: str):
+        # TODO: what about arm arch?
+        # TODO: this check doesn't make sense at this point. There are 2 scenarios for installation:
+        # * specify os and arch during install - then we do not care about current system architecture so way
+        #   fail the whole operation? This shouldn`t be run at the init of WebDriver class then
+        # * do not specify system or arch - then we want to install webdriver for current os and arch. Then we would
+        #   also need to be able to discover ARM arch and system name.
         if system_arch in ["x86_64", "AMD64"]:
             self._system_arch = "64"
         elif system_arch in ["i386", "i586", "32", "x86"]:
