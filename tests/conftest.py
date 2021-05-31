@@ -1,6 +1,8 @@
+import logging
 import platform
 
 import pytest
+from loguru import logger
 
 from pydriver import webdriver
 from tests.helpers import CACHE_DIR, PYDRIVER_HOME, IniFile
@@ -72,3 +74,16 @@ def env_vars(monkeypatch, tmpdir):
         monkeypatch.setenv("HOME", str(tmpdir))
     else:
         raise Exception(f"Unsupported system: {system}")
+
+
+@pytest.fixture
+def caplog(caplog):
+    """Override pytest caplog fixture in order to work properly with loguru module"""
+
+    class PropagateHandler(logging.Handler):
+        def emit(self, record):
+            logging.getLogger(record.name).handle(record)
+
+    handler_id = logger.add(PropagateHandler(), format="{message}")
+    yield caplog
+    logger.remove(handler_id)

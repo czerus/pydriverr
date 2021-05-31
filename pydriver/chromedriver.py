@@ -1,6 +1,8 @@
 import re
 import xml.etree.ElementTree as ET
 
+from loguru import logger
+
 from pydriver.config import WebDriverType
 from pydriver.downloader import Downloader
 from pydriver.webdriver import WebDriver
@@ -39,7 +41,7 @@ class ChromeDriver(WebDriver):
             self._parse_version_os_arch(key.text)
 
     def install(self, version: str, os_: str, arch: str) -> None:
-        self.logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
+        logger.debug(f"Requested version: {version}, OS: {os_}, arch: {arch}")
         self.get_remote_drivers_list()
         version, os_, arch, file_name = self.validate_version_os_arch(WebDriverType.CHROME.drv_name, version, os_, arch)
         url = f"{WebDriverType.CHROME.url}/{version}/{file_name}"

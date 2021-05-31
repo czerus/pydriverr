@@ -1,19 +1,19 @@
 import hashlib
-import logging
 import sys
 from pathlib import Path
 from typing import List
 
 import humanfriendly
+from loguru import logger
 
 from pydriver.pydriver_types import Messages
 
 
 class Support:
-    def __init__(self):
-        self._logger = logging.getLogger("PyDriver")
+    """Helper methods"""
 
-    def calculate_checksum(self, filepath: Path) -> str:
+    @staticmethod
+    def calculate_checksum(filepath: Path) -> str:
         """
         Calculate MD5 checksum for given file.
 
@@ -23,10 +23,11 @@ class Support:
         with open(str(filepath), "rb") as f:
             bytes_ = f.read()
             checksum = hashlib.md5(bytes_).hexdigest()
-            self._logger.debug(f"Checksum of file {filepath}: {checksum}")
+            logger.debug(f"Checksum of file {filepath}: {checksum}")
             return checksum
 
-    def exit(self, messages: Messages = "", exit_code: int = 1) -> None:
+    @staticmethod
+    def exit(messages: Messages = "", exit_code: int = 1) -> None:
         """
         Exit from program with message and with given exit code
 
@@ -38,7 +39,7 @@ class Support:
             if type(messages) == str:
                 messages = [messages]
             for msg in messages:
-                self._logger.error(msg)
+                logger.error(msg)
         sys.exit(exit_code)
 
     @staticmethod

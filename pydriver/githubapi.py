@@ -1,4 +1,4 @@
-import logging
+from loguru import logger
 
 from pydriver.downloader import Downloader
 from pydriver.pydriver_types import ReleasesInfo
@@ -20,7 +20,6 @@ class GithubApi:
         :param owner: Owner of the GitHub repository
         :param repo: Name of the GitHub repository
         """
-        self._logger = logging.getLogger("PyDriver")
         self._downloader = Downloader()
         self._api_url = self.API_URL.format(owner=owner, repo=repo)
 
@@ -38,5 +37,5 @@ class GithubApi:
             releases[release.get("tag_name")] = [
                 asset.get("name") for asset in release.get("assets") if not asset.get("name").endswith(".asc")
             ]
-        self._logger.debug(releases)
+        logger.debug(releases)
         return releases
