@@ -1,26 +1,23 @@
-import os
-import tempfile
-
 import click
+from loguru import logger
 
-from pydriver.config import WebDriverType
-from pydriver.logger import Logger
+from pydriver.config import LOGGING_CONF, WebDriverType
 from pydriver.pydriver_types import Drivers, OptionalString, Version
 from pydriver.support import Support
 from pydriver.webdriver import WebDriver
 
 __all__ = ["cli_pydriver", "install", "delete", "update", "show_env", "show_installed", "show_available", "clear_cache"]
 
+logger.configure(**LOGGING_CONF)
+logger.debug("{:=>10}Starting new session{:=>10}".format("", ""))
+
 
 class _PyDriver:
     """Provide main functionality of pydriver by initing all the required subclasses in proper way"""
 
     def __init__(self, driver_type: OptionalString = None):
-        log_path = os.path.join(tempfile.gettempdir(), "pydriver.log")
-        self.logger = Logger(log_path).configure_logging()
         self.support = Support()
         self.webdriver_obj = driver_type
-        self.logger.debug("{:=>10}Starting new request{:=>10}".format("", ""))
 
     @property
     def webdriver_obj(self):
@@ -81,11 +78,11 @@ def show_env() -> None:
         $ pydriver show-env
     """
     driver = _PyDriver()
-    driver.logger.info(
+    logger.info(
         f"WebDrivers are installed in: {driver.webdriver_obj.drivers_home}, total size is: "
         f"{driver.support.calculate_dir_size(driver.webdriver_obj.drivers_home)}"
     )
-    driver.logger.info(
+    logger.info(
         f"PyDriver cache is in: {driver.webdriver_obj.cache_dir}, total size is: "
         f"{driver.support.calculate_dir_size(driver.webdriver_obj.cache_dir)}"
     )
@@ -132,7 +129,7 @@ def show_available(driver_type: str) -> None:
     """
     driver = _PyDriver(driver_type)
     driver.webdriver_obj.get_remote_drivers_list()
-    driver.logger.info(f"Available {driver_type} drivers:")
+    logger.info(f"Available {driver_type} drivers:")
     driver.webdriver_obj.print_remote_drivers()
 
 
@@ -151,7 +148,7 @@ def clear_cache() -> None:
         $ pydrive clear-cache
     """
     driver = _PyDriver()
-    driver.logger.info(f"Removing cache directory: {driver.webdriver_obj.cache_dir}")
+    logger.info(f"Removing cache directory: {driver.webdriver_obj.cache_dir}")
     driver.webdriver_obj.clear_cache()
 
 
@@ -271,4 +268,4 @@ def update(driver_type: Drivers) -> None:
             driver = _PyDriver(installed_driver)
             driver.webdriver_obj.update()
     else:
-        _PyDriver().logger.info("No drivers installed")
+        logger.info("No drivers installed")

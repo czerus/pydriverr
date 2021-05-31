@@ -1,4 +1,7 @@
 import itertools
+import os
+import sys
+import tempfile
 from enum import Enum
 from typing import List
 
@@ -40,3 +43,16 @@ class WebDriverType(Enum):
         :return: List of all drv_file_names in enum
         """
         return list(itertools.chain(*list(map(lambda c: c.drv_file_names, WebDriverType))))
+
+
+LOGGING_CONF = {
+    "handlers": [
+        {"sink": sys.stdout, "format": "{message}", "level": 20},
+        {
+            "sink": os.path.join(tempfile.gettempdir(), "pydriver.log"),
+            "serialize": False,
+            "rotation": "5MB",
+            "compression": "zip",
+        },
+    ],
+}
