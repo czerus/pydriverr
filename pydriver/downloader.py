@@ -1,8 +1,8 @@
-import logging
 import shutil
 from pathlib import Path
 
 import requests
+from loguru import logger
 
 from pydriver.support import Support
 
@@ -11,7 +11,6 @@ class Downloader:
     """Helper class to download URLs"""
 
     def __init__(self):
-        self._logger = logging.getLogger("PyDriver")
         self._session = requests.Session()
         self._support = Support()
 
@@ -24,7 +23,7 @@ class Downloader:
                        (default: True)
         :return: Whole request `Response` object
         """
-        self._logger.debug(f"Downloading: {url}")
+        logger.debug(f"Downloading: {url}")
         try:
             r = self._session.get(url, stream=stream)
             if r.status_code == 200:
@@ -42,7 +41,7 @@ class Downloader:
         :param dst: Path where to save WebDriver
         :return: None
         """
-        self._logger.debug(f"Downloading from: {url} to: {dst}")
+        logger.debug(f"Downloading from: {url} to: {dst}")
         with open(str(dst), "wb") as f:
             r = self.get_url(url, stream=True)
             r.raw.decode_content = True
