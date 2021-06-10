@@ -1,11 +1,14 @@
 import hashlib
+import os
+import shutil
 import sys
 from pathlib import Path
 from typing import List
 
 import humanfriendly
 from loguru import logger
-
+from configobj import ConfigObj
+from config import CACHE_DIR, DRIVERS_CFG
 from pydriver.pydriver_types import Messages
 
 
@@ -54,12 +57,43 @@ class Support:
             dir_.mkdir(parents=True, exist_ok=True)
 
     @staticmethod
-    def calculate_dir_size(directory: Path) -> str:
+    def calculate_dir_size(directory: str) -> str:
         """
         Calculate the total size of all files and subdirs of given dir
 
         :param directory: Path to directory
         :return: Formatted size of dir e.g. 1.22 KB, 4.9 GB
         """
-        byte_size = sum(f.lstat().st_size for f in directory.glob("**/*") if f.is_file() and f not in [".", ".."])
+        byte_size = sum(f.lstat().st_size for f in Path(directory).glob("**/*") if f.is_file() and f not in [".", ".."])
         return humanfriendly.format_size(byte_size)
+
+    @staticmethod
+    def get_environ_variable(env_name) -> str:
+        """
+        Get from environment variable value or raise error when not defined.
+
+        :return: Environment variable value
+        """
+        env_value = os.environ.get(env_name)
+        logger.debug(f"{env_name} set to {env_value}")
+        if not env_value:
+            Support.exit(f"Env variable {env_name} not defined")
+        return env_value
+
+    @staticmethod
+    def clear_cache() -> None:
+        """
+        Delete cache directory
+
+        :return: None
+        """
+        shutil.rmtree(CACHE_DIR, ignore_errors=True)
+
+    @staticmethod
+    def get_installed_drivers() -> List[str]:
+        """
+        Get list of installed drivers from .drivers.ini
+
+        :return: List of installed drivers
+        """
+        return ConfigObj(str(DRIVERS_CFG)).sections

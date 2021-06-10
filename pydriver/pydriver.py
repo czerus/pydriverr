@@ -1,7 +1,9 @@
+from pathlib import Path
+
 import click
 from loguru import logger
 
-from pydriver.config import LOGGING_CONF, WebDriverType
+from pydriver.config import CACHE_DIR, LOGGING_CONF,HOME_ENV_NAME, WebDriverType
 from pydriver.pydriver_types import Drivers, OptionalString, Version
 from pydriver.support import Support
 from pydriver.webdriver import WebDriver
@@ -77,14 +79,14 @@ def show_env() -> None:
         Show paths to WebDrivers installation dir and cache dir. Show dirs size
         $ pydriver show-env
     """
-    driver = _PyDriver()
+    drivers_home = Support.get_environ_variable(HOME_ENV_NAME)
     logger.info(
-        f"WebDrivers are installed in: {driver.webdriver_obj.drivers_home}, total size is: "
-        f"{driver.support.calculate_dir_size(driver.webdriver_obj.drivers_home)}"
+        f"WebDrivers are installed in: {drivers_home}, total size is: "
+        f"{Support.calculate_dir_size(drivers_home)}"
     )
     logger.info(
-        f"PyDriver cache is in: {driver.webdriver_obj.cache_dir}, total size is: "
-        f"{driver.support.calculate_dir_size(driver.webdriver_obj.cache_dir)}"
+        f"PyDriver cache is in: {CACHE_DIR}, total size is: "
+        f"{Support.calculate_dir_size(CACHE_DIR)}"
     )
 
 
@@ -99,10 +101,10 @@ def show_installed() -> None:
         Show all installed WebDrivers
         $ pydriver show-installed
     """
-    driver = _PyDriver()
-    if not driver.webdriver_obj.drivers_home.is_dir():
-        driver.support.exit(f"{driver.webdriver_obj.drivers_home} directory does not exist")
-    driver.webdriver_obj.print_drivers_from_ini()
+    drivers_home = Path(Support.get_environ_variable(HOME_ENV_NAME))
+    if not drivers_home.is_dir():
+        Support.exit(f"{drivers_home} directory does not exist")
+    _PyDriver().webdriver_obj.print_drivers_from_ini()
 
 
 @cli_pydriver.command(short_help="List of WebDrivers available to install - of given type")
@@ -147,9 +149,8 @@ def clear_cache() -> None:
         Delete cache directory, it will be recreated on next pydriver run
         $ pydrive clear-cache
     """
-    driver = _PyDriver()
-    logger.info(f"Removing cache directory: {driver.webdriver_obj.cache_dir}")
-    driver.webdriver_obj.clear_cache()
+    logger.info(f"Removing cache directory: {CACHE_DIR}")
+    Support.clear_cache()
 
 
 @cli_pydriver.command(short_help="Download certain version of given WebDriver type")
@@ -262,7 +263,7 @@ def update(driver_type: Drivers) -> None:
     :param driver_type: Type of the WebDriver e.g. chrome, gecko
     """
     if len(driver_type) == 0:
-        driver_type = WebDriver().drivers_state.sections
+        driver_type = Support.get_installed_drivers()
     if driver_type:
         for installed_driver in driver_type:
             driver = _PyDriver(installed_driver)

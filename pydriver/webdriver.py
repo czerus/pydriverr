@@ -12,7 +12,7 @@ import tabulate
 from configobj import ConfigObj
 from loguru import logger
 
-from pydriver.config import WebDriverType
+from pydriver.config import CACHE_DIR, DRIVERS_CFG, HOME_ENV_NAME, WebDriverType
 from pydriver.downloader import Downloader
 from pydriver.pydriver_types import Drivers, FnInstall, FnRemoteDriversList
 from pydriver.support import Support
@@ -21,7 +21,6 @@ from pydriver.support import Support
 class WebDriver:
     """Base class for all WebDrivers implementing many common methods"""
 
-    _ENV_NAME = "DRIVERS_HOME"
     _WIN_EXTENSION = ".exe"
     _CONFIG_KEYS = [
         "DRIVER TYPE",
@@ -35,14 +34,12 @@ class WebDriver:
     def __init__(self):
         self.support = Support()
         self._downloader = Downloader()
-        self.drivers_home = Path(self._get_drivers_home())
-        self._drivers_cfg = self.drivers_home / Path(".drivers.ini")
-        self.drivers_state = ConfigObj(str(self._drivers_cfg))
-        self.cache_dir = Path.home() / Path(".pydriver_cache")
+        self.drivers_home = self.support.get_environ_variable(HOME_ENV_NAME)
+        self.drivers_state = ConfigObj(str(DRIVERS_CFG))
         self.system_name = platform.uname().system
         self.system_arch = platform.uname().machine
         self._versions_info = {}
-        self.support.setup_dirs([self.drivers_home, self.cache_dir])
+        self.support.setup_dirs([self.drivers_home, CACHE_DIR])
         logger.debug(f"Identified OS: {self.system_name}")
         logger.debug(f"Identified architecture: {self.system_arch}")
 
@@ -82,18 +79,6 @@ class WebDriver:
         else:
             self.support.exit(f"Unknown OS type: {system_name}")
         logger.debug(f"Current's OS type string: {system_name} -> {self._system_name}")
-
-    def _get_drivers_home(self) -> str:
-        """
-        Get from environment variables dir where drivers will be installed.
-
-        :return: Path to installation dir
-        """
-        home = os.environ.get(WebDriver._ENV_NAME)
-        logger.debug(f"{WebDriver._ENV_NAME} set to {home}")
-        if not home:
-            self.support.exit("Env variable 'DRIVERS_HOME' not defined")
-        return home
 
     def _add_driver_to_ini(
         self,
@@ -187,7 +172,7 @@ class WebDriver:
         :param file_name: Name of the WebDriver file
         :return: None
         """
-        version_cache_dir = self.cache_dir / Path(driver_type) / Path(version)
+        version_cache_dir = CACHE_DIR / Path(driver_type) / Path(version)
         zipfile_path = version_cache_dir / file_name
         if not (version_cache_dir / file_name).is_file():
             logger.info("Requested driver not found in cache")
@@ -222,7 +207,7 @@ class WebDriver:
 
         :return: None
         """
-        if not self._drivers_cfg.exists() or len(self.drivers_state.sections) == 0:
+        if not DRIVERS_CFG.exists() or len(self.drivers_state.sections) == 0:
             self.support.exit("No drivers installed")
         values = []
         for driver_type in self.drivers_state.sections:
@@ -293,14 +278,6 @@ class WebDriver:
             self.support.exit(errors)
         return version, os_, arch, Path(self._versions_info[version][os_][arch])
 
-    def clear_cache(self) -> None:
-        """
-        Delete cache directory
-
-        :return: None
-        """
-        shutil.rmtree(self.cache_dir, ignore_errors=True)
-
     def replace_driver_and_update_ini(
         self,
         archive_path: Path,
@@ -347,7 +324,7 @@ class WebDriver:
         :param driver_types_to_delete: List of WebDriver types to be deleted
         :return: None
         """
-        if not self._drivers_cfg.exists():
+        if not DRIVERS_CFG.exists():
             self.support.exit("No drivers installed")
         if len(driver_types_to_delete) == 0:
             driver_types_to_delete = self.drivers_state.sections.copy()
