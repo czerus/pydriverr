@@ -562,10 +562,21 @@ category = "dev"
 optional = false
 python-versions = "*"
 
+[[package]]
+name = "yaspin"
+version = "2.0.0"
+description = "Yet Another Terminal Spinner"
+category = "main"
+optional = false
+python-versions = ">=3.6.2,<4.0.0"
+
+[package.dependencies]
+termcolor = ">=1.1.0,<2.0.0"
+
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "b378200797502573cfcd279ace8b167c0bbb0182765d41c19ea997d4352fa6c5"
+content-hash = "d9219817ab46540a244a0fa2498b8b4249f15e729cc85f6080573f3bfcdf723d"
 
 [metadata.files]
 appdirs = [
@@ -873,4 +884,8 @@ win32-setctime = [
 ]
 wrapt = [
     {file = "wrapt-1.12.1.tar.gz", hash = "sha256:b62ffa81fb85f4332a4f609cab4ac40709470da05643a082ec1eb88e6d9b97d7"},
+]
+yaspin = [
+    {file = "yaspin-2.0.0-py3-none-any.whl", hash = "sha256:9da195db6630b76f0d37612f195dd7c325e280ad398dae4fcf30890a124ceb74"},
+    {file = "yaspin-2.0.0.tar.gz", hash = "sha256:0498039b3e110f53824417a9f59418a20843e8752b8b15c26bb81a659d4aec5c"},
 ]

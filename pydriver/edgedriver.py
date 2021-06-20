@@ -1,9 +1,8 @@
 import re
 import xml.etree.ElementTree as ET
 
-from loguru import logger
-
 from pydriver.config import WebDriverType
+from pydriver.custom_logger import logger
 from pydriver.downloader import Downloader
 from pydriver.webdriver import WebDriver
 
@@ -34,6 +33,7 @@ class EdgeDriver(WebDriver):
             )
 
     def get_remote_drivers_list(self) -> None:
+        # with logger.spinner(f"Checking version: [{WebDriverType.EDGE.drv_name}]"):
         r = self.downloader.get_url(f"{WebDriverType.EDGE.url}/?comp=list")
         root = ET.fromstring(r.content)
         for key in root.iter("Name"):
