@@ -26,7 +26,7 @@ junit_family = "xunit2"
 name = "pydriver"
 version = "0.2.0"
 description = "Download selenium WebDriver for Windows, Mac & Linux"
-authors = ["Krzysztof Czeronko <krzysztof.czeronko@gmail.com>"]
+authors = ["Krzysztof Czeronko <krzysztof.czeronko@gmail.com>", "Bartosz Sypniewski <bartosz.sypniewski@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.scripts]
@@ -43,6 +43,7 @@ tabulate = "^0.8.7"
 configobj = "^5.0.6"
 click = "^7.1.2"
 loguru = "^0.5.3"
+yaspin = "^2.0.0"
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.4.4"

@@ -1,5 +1,4 @@
-from loguru import logger
-
+from pydriver.custom_logger import logger
 from pydriver.downloader import Downloader
 from pydriver.pydriver_types import ReleasesInfo
 

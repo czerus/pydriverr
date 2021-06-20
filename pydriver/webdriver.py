@@ -10,9 +10,9 @@ from typing import Tuple
 
 import tabulate
 from configobj import ConfigObj
-from loguru import logger
 
 from pydriver.config import WebDriverType
+from pydriver.custom_logger import logger
 from pydriver.downloader import Downloader
 from pydriver.pydriver_types import Drivers, FnInstall, FnRemoteDriversList
 from pydriver.support import Support
@@ -195,6 +195,7 @@ class WebDriver:
             self._downloader.dl_driver(url, zipfile_path)
         else:
             logger.debug(f"{driver_type}driver in cache")
+
         self.replace_driver_and_update_ini(zipfile_path, driver_type, os_, arch, version)
         logger.info(f"Installed {driver_type}driver:\nVERSION: {version}\nOS: {os_}\nARCHITECTURE: {arch}")
 

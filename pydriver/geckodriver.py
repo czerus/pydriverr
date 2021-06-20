@@ -1,9 +1,8 @@
 import re
 from typing import Dict
 
-from loguru import logger
-
 from pydriver.config import WebDriverType
+from pydriver.custom_logger import logger
 from pydriver.githubapi import GithubApi
 from pydriver.webdriver import WebDriver
 
