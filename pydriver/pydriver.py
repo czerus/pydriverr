@@ -104,7 +104,7 @@ def show_installed() -> None:
     drivers_home = Path(Support.get_environ_variable(HOME_ENV_NAME))
     if not drivers_home.is_dir():
         Support.exit(f"{drivers_home} directory does not exist")
-    _PyDriver().webdriver_obj.print_drivers_from_ini()
+    WebDriver.print_drivers_from_ini()
 
 
 @cli_pydriver.command(short_help="List of WebDrivers available to install - of given type")

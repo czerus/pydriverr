@@ -36,49 +36,43 @@ class WebDriver:
         self._downloader = Downloader()
         self.drivers_home = self.support.get_environ_variable(HOME_ENV_NAME)
         self.drivers_state = ConfigObj(str(DRIVERS_CFG))
-        self.system_name = platform.uname().system
-        self.system_arch = platform.uname().machine
         self._versions_info = {}
         self.support.setup_dirs([self.drivers_home, CACHE_DIR])
-        logger.debug(f"Identified OS: {self.system_name}")
-        logger.debug(f"Identified architecture: {self.system_arch}")
+        logger.debug(f"Running on {platform.uname().system} {platform.uname().machine}")
 
-    @property
-    def system_arch(self):
-        return self._system_arch
-
-    @system_arch.setter
-    def system_arch(self, system_arch: str):
-        # TODO: what about arm arch?
-        # TODO: this check doesn't make sense at this point. There are 2 scenarios for installation:
-        # * specify os and arch during install - then we do not care about current system architecture so way
-        #   fail the whole operation? This shouldn`t be run at the init of WebDriver class then
-        # * do not specify system or arch - then we want to install webdriver for current os and arch. Then we would
-        #   also need to be able to discover ARM arch and system name.
-        if system_arch in ["x86_64", "AMD64"]:
-            self._system_arch = "64"
-        elif system_arch in ["i386", "i586", "32", "x86"]:
-            self._system_arch = "32"
+    @staticmethod
+    def get_system_arch() -> str:
+        """
+        TODO
+        :return:
+        """
+        arch = platform.uname().machine
+        if arch in ["x86_64", "AMD64"]:
+            arch = "64"
+        elif arch in ["i386", "i586", "32", "x86"]:
+            arch = "32"
         else:
-            self.support.exit(f"Unknown architecture: {system_arch}")
-        logger.debug(f"Current's OS architecture string: {system_arch} -> {self._system_arch} bit")
+            Support.exit(f"Unknown architecture: {arch}")
+        logger.debug(f"Current's OS architecture: {arch} bit")
+        return arch
 
-    @property
-    def system_name(self):
-        return self._system_name
-
-    @system_name.setter
-    def system_name(self, system_name: str):
-        system_name = system_name.lower()
+    @staticmethod
+    def get_system_name() -> str:
+        """
+        TODO
+        :return:
+        """
+        system_name = platform.machine().lower()
         if system_name == "darwin":
-            self._system_name = "mac"
+            system_name = "mac"
         elif system_name == "windows":
-            self._system_name = "win"
+            system_name = "win"
         elif system_name == "linux":
-            self._system_name = "linux"
+            system_name = "linux"
         else:
-            self.support.exit(f"Unknown OS type: {system_name}")
-        logger.debug(f"Current's OS type string: {system_name} -> {self._system_name}")
+            Support.exit(f"Unknown OS type: {system_name}")
+        logger.debug(f"Current's OS type: {system_name}")
+        return system_name
 
     def _add_driver_to_ini(
         self,
@@ -180,7 +174,7 @@ class WebDriver:
             self._downloader.dl_driver(url, zipfile_path)
         else:
             logger.debug(f"{driver_type}driver in cache")
-        self.replace_driver_and_update_ini(zipfile_path, driver_type, os_, arch, version)
+        self._replace_driver_and_update_ini(zipfile_path, driver_type, os_, arch, version)
         logger.info(f"Installed {driver_type}driver:\nVERSION: {version}\nOS: {os_}\nARCHITECTURE: {arch}")
 
     def update_version_dict(self, version: str, os_: str, arch: str, file_name: str) -> None:
@@ -201,17 +195,19 @@ class WebDriver:
             else:
                 self._versions_info[version][os_][arch] = file_name
 
-    def print_drivers_from_ini(self) -> None:
+    @staticmethod
+    def print_drivers_from_ini() -> None:
         """
         Print in console information about installed drivers
 
         :return: None
         """
-        if not DRIVERS_CFG.exists() or len(self.drivers_state.sections) == 0:
-            self.support.exit("No drivers installed")
+        installed_drivers = Support.get_installed_drivers()
+        if not DRIVERS_CFG.exists() or len(installed_drivers) == 0:
+            Support.exit("No drivers installed")
         values = []
-        for driver_type in self.drivers_state.sections:
-            values.append([driver_type] + [self.drivers_state[driver_type][v] for v in WebDriver._CONFIG_KEYS[1:]])
+        for driver_type in installed_drivers:
+            values.append([driver_type] + [Support.get_installed_drivers_data()[driver_type][v] for v in WebDriver._CONFIG_KEYS[1:]])
         logger.info(tabulate.tabulate(values, headers=WebDriver._CONFIG_KEYS, showindex=True))
 
     def print_remote_drivers(self) -> None:
@@ -227,7 +223,7 @@ class WebDriver:
         values = sorted(values, key=lambda val: LooseVersion(val[0]))
         logger.info(tabulate.tabulate(values, headers=WebDriver._CONFIG_KEYS[1:4], showindex=True))
 
-    def get_newest_version(self) -> str:
+    def _get_newest_version(self) -> str:
         """
         Return highest version of WebDriver.
 
@@ -255,9 +251,9 @@ class WebDriver:
         :return: version, os, architecture, WebDriver file name
         """
         errors = []
-        version = version or self.get_newest_version()
-        os_ = os_ or self.system_name
-        arch = arch or self.system_arch
+        version = version or self._get_newest_version()
+        os_ = os_ or WebDriver.get_system_name()
+        arch = arch or WebDriver.get_system_arch()
         if driver_type == "gecko" and os_ == "mac":
             arch = ""  # gecko does not have arch for mac
         logger.debug(f"I will download following version: {version}, OS: {os_}, arch: {arch}")
@@ -278,7 +274,7 @@ class WebDriver:
             self.support.exit(errors)
         return version, os_, arch, Path(self._versions_info[version][os_][arch])
 
-    def replace_driver_and_update_ini(
+    def _replace_driver_and_update_ini(
         self,
         archive_path: Path,
         driver_type: str,
@@ -362,7 +358,7 @@ class WebDriver:
             logger.info("Corrupted .ini file")
             return
         fn_get_remote_drivers_list()
-        remote_version = self.get_newest_version()
+        remote_version = self._get_newest_version()
         if LooseVersion(local_version) >= LooseVersion(remote_version):
             logger.info(
                 f"{driver_type}driver is already in newest version. "

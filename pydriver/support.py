@@ -3,7 +3,7 @@ import os
 import shutil
 import sys
 from pathlib import Path
-from typing import List
+from typing import List, Dict, KeysView
 
 import humanfriendly
 from loguru import logger
@@ -75,9 +75,9 @@ class Support:
         :return: Environment variable value
         """
         env_value = os.environ.get(env_name)
-        logger.debug(f"{env_name} set to {env_value}")
         if not env_value:
             Support.exit(f"Env variable {env_name} not defined")
+        logger.debug(f"{env_name} set to {env_value}")
         return env_value
 
     @staticmethod
@@ -90,10 +90,19 @@ class Support:
         shutil.rmtree(CACHE_DIR, ignore_errors=True)
 
     @staticmethod
-    def get_installed_drivers() -> List[str]:
+    def get_installed_drivers_data() -> Dict:
+        """
+        Get content of the .drivers.ini
+
+        :return: Dictionary od installed drivers with all details
+        """
+        return ConfigObj(str(DRIVERS_CFG)).dict()
+
+    @staticmethod
+    def get_installed_drivers() -> KeysView:
         """
         Get list of installed drivers from .drivers.ini
 
         :return: List of installed drivers
         """
-        return ConfigObj(str(DRIVERS_CFG)).sections
+        return Support.get_installed_drivers_data().keys()
