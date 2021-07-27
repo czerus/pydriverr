@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import List
 
 import humanfriendly
-from loguru import logger
 
+from pydriver.custom_logger import logger
 from pydriver.pydriver_types import Messages
 
 

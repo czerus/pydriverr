@@ -1,7 +1,7 @@
 import click
-from loguru import logger
 
 from pydriver.config import LOGGING_CONF, WebDriverType
+from pydriver.custom_logger import logger
 from pydriver.pydriver_types import Drivers, OptionalString, Version
 from pydriver.support import Support
 from pydriver.webdriver import WebDriver
@@ -77,15 +77,16 @@ def show_env() -> None:
         Show paths to WebDrivers installation dir and cache dir. Show dirs size
         $ pydriver show-env
     """
-    driver = _PyDriver()
-    logger.info(
-        f"WebDrivers are installed in: {driver.webdriver_obj.drivers_home}, total size is: "
-        f"{driver.support.calculate_dir_size(driver.webdriver_obj.drivers_home)}"
-    )
-    logger.info(
-        f"PyDriver cache is in: {driver.webdriver_obj.cache_dir}, total size is: "
-        f"{driver.support.calculate_dir_size(driver.webdriver_obj.cache_dir)}"
-    )
+    with logger.spinner("Show environment"):
+        driver = _PyDriver()
+        logger.info(
+            f"WebDrivers are installed in: {driver.webdriver_obj.drivers_home}, total size is: "
+            f"{driver.support.calculate_dir_size(driver.webdriver_obj.drivers_home)}"
+        )
+        logger.info(
+            f"PyDriver cache is in: {driver.webdriver_obj.cache_dir}, total size is: "
+            f"{driver.support.calculate_dir_size(driver.webdriver_obj.cache_dir)}"
+        )
 
 
 @cli_pydriver.command(short_help="List installed WebDrivers in a form of table")
@@ -99,10 +100,11 @@ def show_installed() -> None:
         Show all installed WebDrivers
         $ pydriver show-installed
     """
-    driver = _PyDriver()
-    if not driver.webdriver_obj.drivers_home.is_dir():
-        driver.support.exit(f"{driver.webdriver_obj.drivers_home} directory does not exist")
-    driver.webdriver_obj.print_drivers_from_ini()
+    with logger.spinner("Show installed drivers"):
+        driver = _PyDriver()
+        if not driver.webdriver_obj.drivers_home.is_dir():
+            driver.support.exit(f"{driver.webdriver_obj.drivers_home} directory does not exist")
+        driver.webdriver_obj.print_drivers_from_ini()
 
 
 @cli_pydriver.command(short_help="List of WebDrivers available to install - of given type")
@@ -127,10 +129,11 @@ def show_available(driver_type: str) -> None:
     \f
     :param driver_type: Type of the WebDriver e.g. chrome, gecko
     """
-    driver = _PyDriver(driver_type)
-    driver.webdriver_obj.get_remote_drivers_list()
-    logger.info(f"Available {driver_type} drivers:")
-    driver.webdriver_obj.print_remote_drivers()
+    with logger.spinner(f"Show available drivers for: [{driver_type}]"):
+        driver = _PyDriver(driver_type)
+        driver.webdriver_obj.get_remote_drivers_list()
+        logger.info(f"Available {driver_type} drivers:")
+        driver.webdriver_obj.print_remote_drivers()
 
 
 @cli_pydriver.command(short_help="Delete cache directory")
@@ -147,9 +150,10 @@ def clear_cache() -> None:
         Delete cache directory, it will be recreated on next pydriver run
         $ pydrive clear-cache
     """
-    driver = _PyDriver()
-    logger.info(f"Removing cache directory: {driver.webdriver_obj.cache_dir}")
-    driver.webdriver_obj.clear_cache()
+    with logger.spinner("Clear cache"):
+        driver = _PyDriver()
+        logger.info(f"Removing cache directory: {driver.webdriver_obj.cache_dir}")
+        driver.webdriver_obj.clear_cache()
 
 
 @cli_pydriver.command(short_help="Download certain version of given WebDriver type")
@@ -196,8 +200,10 @@ def install(
     :param os_: Operating System for requested WebDriver (default: current OS)
     :param arch: Architecture for requested WebDriver (default: current OS architecture
     """
-    driver = _PyDriver(driver_type)
-    driver.webdriver_obj.install(str(version), str(os_), str(arch))
+
+    with logger.spinner(f"Install driver for: [{driver_type}]"):
+        driver = _PyDriver(driver_type)
+        driver.webdriver_obj.install(str(version), str(os_), str(arch))
 
 
 @cli_pydriver.command(short_help="Delete given WebDriver or all installed WebDrivers")
@@ -228,9 +234,14 @@ def delete(driver_type: Drivers) -> None:
     \f
     :param driver_type: Type of the WebDriver e.g. chrome, gecko
     """
+    if not driver_type:
+        spinner_msg = "all"
+    else:
+        spinner_msg = ", ".join(driver_type)
 
-    driver = _PyDriver()
-    driver.webdriver_obj.delete_drivers(driver_type)
+    with logger.spinner(f"Deleting driver for: [{spinner_msg}]"):
+        driver = _PyDriver()
+        driver.webdriver_obj.delete_drivers(driver_type)
 
 
 @cli_pydriver.command(short_help="Update given WebDriver or all installed WebDrivers")
@@ -261,11 +272,17 @@ def update(driver_type: Drivers) -> None:
     \f
     :param driver_type: Type of the WebDriver e.g. chrome, gecko
     """
-    if len(driver_type) == 0:
-        driver_type = WebDriver().drivers_state.sections
-    if driver_type:
-        for installed_driver in driver_type:
-            driver = _PyDriver(installed_driver)
-            driver.webdriver_obj.update()
+    if not driver_type:
+        spinner_msg = "all"
     else:
-        logger.info("No drivers installed")
+        spinner_msg = ", ".join(driver_type)
+
+    with logger.spinner(f"Update driver for: [{spinner_msg}]"):
+        if len(driver_type) == 0:
+            driver_type = WebDriver().drivers_state.sections
+        if driver_type:
+            for installed_driver in driver_type:
+                driver = _PyDriver(installed_driver)
+                driver.webdriver_obj.update()
+        else:
+            logger.info("No drivers installed")

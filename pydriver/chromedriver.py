@@ -1,9 +1,8 @@
 import re
 import xml.etree.ElementTree as ET
 
-from loguru import logger
-
 from pydriver.config import WebDriverType
+from pydriver.custom_logger import logger
 from pydriver.downloader import Downloader
 from pydriver.webdriver import WebDriver
 
