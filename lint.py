@@ -11,7 +11,7 @@ import isort
 
 class Linter:
 
-    _CODE_SRC = {"dirs": ["pydriver", "tests"], "files": ["lint.py"]}
+    _CODE_SRC = {"dirs": ["pydriver", "tests"], "files": ["lint.py", "changelog.py", "release.py"]}
     _PY_GLOB_PATTERN = Path("**/*.py")
     _PYPROJECT_TOML_PATH = "pyproject.toml"
 
