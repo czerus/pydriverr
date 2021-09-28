@@ -1,4 +1,4 @@
 # Changelog
-## Release: 1.0.0-rc2 - 27/09/2021
+## Release: 1.0.0-rc3 - 29/09/2021
 ### fix:
-* fix branch name (czerus)
+* Fix condition (czerus)
