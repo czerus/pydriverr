@@ -67,7 +67,7 @@ logger.info("Adding CHANGELOG.md and pyproject.toml to commit")
 run_cmd(["git", "add", "CHANGELOG.md", "pyproject.toml"])
 
 logger.info(f"Committing with message:\nrelease: Create release {new_version}\n\nFixes: #{issue_id}")
-run_cmd(["git", "commit", "-m", f"release: Create release {new_version}\n\nFixes: #{issue_id}"])
+run_cmd(["git", "commit", "-m", f"release: Create release v{new_version}\n\nFixes: #{issue_id}"])
 
 logger.info(f"Creating annotated tag: Release v{new_version}")
 run_cmd(["git", "tag", "-a", f"v{new_version}", "-m", f'"Release v{new_version}"'])
