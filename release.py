@@ -11,7 +11,7 @@ os.chdir(dir_path)
 
 new_version = argv[1]
 issue_id = argv[2]
-branch_name = f"release/v{new_version}"
+branch_name = f"release/{new_version}"
 curr_version = (
     run(["poetry", "version"], capture_output=True).stdout.decode("utf-8").replace("\n", "").replace("pydriver ", "")
 )
@@ -24,8 +24,8 @@ else:
 
 cmd_current_branch = "git rev-parse --abbrev-ref HEAD"
 cmd_del_branch = f"git branch -D {branch_name}"
-cmd_del_tag = f"git tag -d v{new_version}"
-cmd_del_tag_push = f"git push --delete origin v{new_version}"
+cmd_del_tag = f"git tag -d {new_version}"
+cmd_del_tag_push = f"git push --delete origin {new_version}"
 current_branch = run(shlex.split(cmd_current_branch), capture_output=True).stdout.decode()
 cmd_checkout_old_branch = f"git checkout {current_branch}"
 
@@ -67,7 +67,7 @@ logger.info("Adding CHANGELOG.md and pyproject.toml to commit")
 run_cmd(["git", "add", "CHANGELOG.md", "pyproject.toml"])
 
 logger.info(f"Committing with message:\nrelease: Create release {new_version}\n\nFixes: #{issue_id}")
-run_cmd(["git", "commit", "-m", f"release: Create release v{new_version}\n\nFixes: #{issue_id}"])
+run_cmd(["git", "commit", "-m", f"release: Create release {new_version}\n\nFixes: #{issue_id}"])
 
 logger.info(f"Creating annotated tag: Release v{new_version}")
 run_cmd(["git", "tag", "-a", f"v{new_version}", "-m", f'"Release v{new_version}"'])
