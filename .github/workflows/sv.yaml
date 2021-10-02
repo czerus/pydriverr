@@ -58,7 +58,7 @@ jobs:
         name: pydriver_app
         path: dist/pydriver-*.whl
     - name: Upload built app to pypi
-      if: "!contains(github.event.head_commit.message, 'release: Create release v*')"
+      if: "!contains(github.event.head_commit.message, 'release: Create release *')"
       run: |
         source $HOME/.poetry/env
         poetry publish -u $PYPI_USERNAME -p $PYPI_PASSWORD -n
