@@ -3,14 +3,17 @@ import re
 import shlex
 import subprocess
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
+from typing import Dict, List
 
 from loguru import logger
 
-# TODO:
-# 1. Add BREAKING CHANGES
-# 2. Make changelog.md titles long: Documentation instead docs, Bug Fixes instead of fix, Other changes intead Other etc
+
+@dataclass
+class Commits:
+    generic: Dict = field(default_factory=lambda: defaultdict(list))
+    breaking: Dict = field(default_factory=lambda: defaultdict(list))
 
 
 @dataclass
@@ -20,6 +23,21 @@ class Commit:
     area: str = None
     topic: str = None
     author: str = None
+    breaking: bool = False
+
+
+commitsDict = Dict[str, List[Commit]]
+
+
+def _breaking_changes(func):
+    def inner(f, commits_dict):
+        if commits_dict:
+            f.write("\n---\n")
+            f.write("### BREAKING CHANGES\n")
+            func(f, commits_dict)
+            f.write("---\n")
+
+    return inner
 
 
 class Changelog:
@@ -36,26 +54,32 @@ class Changelog:
 
     Commit format that is properly parsed:
 
-        prefix(area): topic
+        prefix(area)!: topic
 
-    where `(area)` is optional.
+    where `(area)` and `!`are optional. `!` means breaking change.
     """
 
-    _PREFIXES = (
-        "feat",
-        "chore",
-        "fix",
-        "docs",
-        "refactor",
-        "other",
+    _PREFIXES_USE = {
+        "feat": "Features",
+        "chore": "Chore",
+        "fix": "Fixes",
+        "revert": "Reverts",
+        "docs": "Documentation",
+        "refactor": "Refactoring",
+        "other": "Other changes",
+    }
+    _IGNORE_REGEXPS = (
+        r".*Create release.*",
+        r"Merge.*",
     )
     _CHANGELOG_FILE = "CHANGELOG.md"
     _COMMIT_REGEXP = (
-        rf"(?P<prefix>{'|'.join(_PREFIXES)})?" r"(?P<area>\(.*\))?" r":*\s*" r"(?P<topic>.*)" r"\s\<(?P<author>.*)\>$"
+        rf"(?P<prefix>{'|'.join(_PREFIXES_USE.keys())})?(?P<area>\(.*\))?(?P<breaking>\!)?:\s*(?P<topic>.*)"
     )
+    _AUTHOR_REGEXP = r".*\<(?P<author>.*)\>$"
 
     def __init__(self) -> None:
-        self._commits = defaultdict(list)
+        self._commits = Commits()
 
     def parse_commits_into_obj(self, from_tag: str, to_tag: str) -> None:
         """
@@ -66,8 +90,14 @@ class Changelog:
         :return: None
         """
         for commit_raw_str in self._get_commit_list(from_tag, to_tag):
+            if re.match("|".join(self._IGNORE_REGEXPS), commit_raw_str):
+                logger.debug(f"Skipping ignored commit: {commit_raw_str}")
+                continue
             commit_obj = self.commit2obj(commit_raw_str)
-            self._commits[commit_obj.prefix].append(commit_obj)
+            if commit_obj.breaking:
+                self._commits.breaking[commit_obj.prefix].append(commit_obj)
+            else:
+                self._commits.generic[commit_obj.prefix].append(commit_obj)
 
     def commit2obj(self, commit_raw_str: str) -> Commit:
         """
@@ -79,12 +109,14 @@ class Changelog:
         :return: `Commit` object
         """
         match_obj = re.match(self._COMMIT_REGEXP, commit_raw_str)
-        commit = Commit(raw=commit_raw_str)
+        commit = Commit(raw=commit_raw_str, prefix="other")
         if match_obj:
             commit.prefix = match_obj.group("prefix") or "other"
             commit.area = match_obj.group("area")
-            commit.topic = match_obj.group("topic")
-            commit.author = match_obj.group("author")
+            commit.topic = match_obj.group("topic").capitalize()
+            commit.breaking = match_obj.group("breaking") is not None
+        match_author = re.match(self._AUTHOR_REGEXP, commit_raw_str)
+        commit.author = match_author.group("author")
         logger.debug(commit)
         return commit
 
@@ -97,7 +129,9 @@ class Changelog:
         """
         with open(self._CHANGELOG_FILE, "w") as f:
             self._add_date_and_release(f, release)
-            self._add_sections_with_commits(f)
+            add_breaking_changes = _breaking_changes(self._add_commits)
+            add_breaking_changes(f, self._commits.breaking)
+            self._add_commits(f, self._commits.generic)
         logger.info(f"Changelog written to {self._CHANGELOG_FILE}")
 
     @staticmethod
@@ -127,7 +161,7 @@ class Changelog:
     @staticmethod
     def _add_date_and_release(f: io.TextIOWrapper, release: str) -> None:
         """
-        Add to changelog file header with release data
+        Add to changelog file header with release data.
 
         :param f: File handler to CHANGELOG.md file
         :param release: Release name e.g v1.0.0
@@ -137,19 +171,37 @@ class Changelog:
         f.write("# Changelog\n")
         f.write(f"## Release: {release} - {release_date}\n")
 
-    def _add_sections_with_commits(self, f: io.TextIOWrapper) -> None:
+    def _add_commits(self, f: io.TextIOWrapper, commits_dict: commitsDict) -> None:
         """
-        Add to changelog file structured commits
+        Add commits to changelog.
 
         :param f: File handler to CHANGELOG.md file
+        :param commits_dict: Dictionary where Key is prefix type and value is list of Commits
         :return: None
         """
-        for prefix in self._PREFIXES:
-            if prefix not in self._commits:
+        if not commits_dict:
+            return
+        for prefix_type, prefix_name in self._PREFIXES_USE.items():
+            if prefix_type not in commits_dict:
                 continue
-            f.write(f"### {prefix}:\n")
-            for commits in self._commits.get(prefix, []):
-                f.write(f"* {commits.topic} ({commits.author})\n")
+            f.write(f"### {prefix_name}:\n")
+            Changelog._write_commits(f, commits_dict, prefix_type)
+
+    @staticmethod
+    def _write_commits(f, commits_dict: commitsDict, prefix_type: str) -> None:
+        """
+        Write commit in one of formats: topic|raw_string (author).
+
+        :param f: File handler to CHANGELOG.md file
+        :param commits_dict: Dictionary where Key is prefix type and value is list of Commits
+        :param prefix_type: Type of commit prefix e.g. fix, feat
+        :return: None
+        """
+        for commit in commits_dict.get(prefix_type, []):
+            text = f"* {commit.topic} ({commit.author})\n"
+            if prefix_type == "other":
+                text = f"* {commit.raw} ({commit.author})\n"
+            f.write(text)
 
 
 if __name__ == "__main__":
