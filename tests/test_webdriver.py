@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-from pydriver import webdriver
+from ciyen import webdriver
 from tests.helpers import PYDRIVER_HOME, PlatformUname
 
 
@@ -24,7 +24,7 @@ class TestWebdriverSystemIdentification:
         assert f"Current's OS type string: {user_input.system.lower()} -> {expected}" in caplog.messages
 
     def test_system_name_nok(self, env_vars, caplog, mocker):
-        """Display message and exit with 1 exit code when Pydriver is run on not supported system"""
+        """Display message and exit with 1 exit code when Ciyen is run on not supported system"""
         caplog.set_level(logging.DEBUG)
         webdriver.platform = mocker.Mock()
         webdriver.platform.uname.return_value = PlatformUname(system="nok")
@@ -54,7 +54,7 @@ class TestWebdriverSystemIdentification:
         assert f"Current's OS architecture string: {user_input.machine} -> {expected} bit" in caplog.messages
 
     def test_machine_nok(self, env_vars, caplog, mocker):
-        """Display message and exit with 1 exit code when Pydriver is run on not supported system architecture"""
+        """Display message and exit with 1 exit code when Ciyen is run on not supported system architecture"""
         caplog.set_level(logging.DEBUG)
         webdriver.platform = mocker.Mock()
         webdriver.platform.uname.return_value = PlatformUname(machine="nok")

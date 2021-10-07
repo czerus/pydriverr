@@ -1,4 +1,4 @@
-name: Submit Verification Pydriver
+name: Submit Verification Ciyen
 
 on:
   pull_request:
@@ -47,7 +47,7 @@ jobs:
     - name: Test
       run: |
         source $HOME/.poetry/env
-        poetry run pytest tests/ --cov=pydriver --cov-report html --cov-report term -vv
+        poetry run pytest tests/ --cov=ciyen --cov-report html --cov-report term -vv
     - name: Build wheel
       run: |
         source $HOME/.poetry/env
@@ -55,8 +55,8 @@ jobs:
     - name: Upload builded app to artifacts
       uses: actions/upload-artifact@v2
       with:
-        name: pydriver_app
-        path: dist/pydriver-*.whl
+        name: ciyen_app
+        path: dist/ciyen-*.whl
     - name: Upload built app to pypi
       if: "!contains(github.event.head_commit.message, 'release: Create release *')"
       env:
