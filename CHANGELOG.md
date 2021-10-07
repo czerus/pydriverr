@@ -1,5 +1,5 @@
 # Changelog
-## Release: 1.0.0-rc13 - 07/10/2021
+## Release: 1.0.0-rc14 - 07/10/2021
 ### Features:
 * Add edge driver <bartosz sypniewski> (Bartosz Sypniewski)
 * Add opera driver <bartosz sypniewski> (Bartosz Sypniewski)
@@ -7,6 +7,7 @@
 ### Chore:
 * Add custom_logger class as logger with spinner (#66) <pajhiwo> (pajhiwo)
 ### Fixes:
+* Use token <czerus> (czerus)
 * Fix new sv yaml <czerus> (czerus)
 * Fix sv.yaml <czerus> (czerus)
 * Fix changelog and release <czerus> (czerus)
