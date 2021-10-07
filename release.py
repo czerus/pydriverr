@@ -6,6 +6,8 @@ from typing import List
 
 from loguru import logger
 
+# TODO: Add option to revert last release (not merged one: delete branch, delete tag)
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 os.chdir(dir_path)
 
@@ -73,7 +75,6 @@ logger.info(f"Creating annotated tag: Release {new_version}")
 run_cmd(["git", "tag", "-a", f"{new_version}", "-m", f'"Release {new_version}"'])
 
 logger.info("Pushing to repository")
-run_cmd(["git", "push", "origin", branch_name])
-run_cmd(["git", "push", "origin", f"{new_version}"])
-
+run_cmd(["git", "push", "-f", "origin", branch_name])
+run_cmd(["git", "push", "-f", "origin", f"{new_version}"])
 logger.info("Everything done. Create PR, review and merge it to create release")

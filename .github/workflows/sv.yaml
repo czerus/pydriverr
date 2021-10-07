@@ -15,6 +15,9 @@ jobs:
         python-version: [3.8]
 
     steps:
+      - env:
+          PYPI_USERNAME: ${{ secrets.PYPI_USERNAME}}
+          PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD}}
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
@@ -61,4 +64,4 @@ jobs:
       if: "!contains(github.event.head_commit.message, 'release: Create release *')"
       run: |
         source $HOME/.poetry/env
-        poetry publish -u $PYPI_USERNAME -p $PYPI_PASSWORD -n
+        poetry publish -u "$PYPI_USERNAME" -p "$PYPI_PASSWORD" -n

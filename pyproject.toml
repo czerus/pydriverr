@@ -24,10 +24,12 @@ junit_family = "xunit2"
 
 [tool.poetry]
 name = "pydriver"
-version = "1.0.0-rc9"
+version = "1.0.0-rc10"
 description = "Download selenium WebDriver for Windows, Mac & Linux"
 authors = ["Krzysztof Czeronko <krzysztof.czeronko@gmail.com>", "Bartosz Sypniewski <bartosz.sypniewski@gmail.com>"]
 readme = "README.md"
+repository = "https://github.com/czerus/pydriver"
+exclude = ["changelog.py", "lint.py", "release.py"]
 
 [tool.poetry.scripts]
 pydriver = 'pydriver.pydriver:cli_pydriver'
