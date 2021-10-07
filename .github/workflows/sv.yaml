@@ -15,9 +15,6 @@ jobs:
         python-version: [3.8]
 
     steps:
-      - env:
-          PYPI_USERNAME: ${{ secrets.PYPI_USERNAME}}
-          PYPI_PASSWORD: ${{ secrets.PYPI_PASSWORD}}
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
