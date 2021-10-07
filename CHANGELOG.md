@@ -1,5 +1,13 @@
 # Changelog
-## Release: 1.0.0-rc14 - 07/10/2021
+## Release: 1.0.0-rc15 - 07/10/2021
+
+---
+### BREAKING CHANGES
+### Chore:
+* Rename project to ciyen as the pydriver is taken <czerus> (czerus)
+### Fixes:
+* Fix publishing <czerus> (czerus)
+---
 ### Features:
 * Add edge driver <bartosz sypniewski> (Bartosz Sypniewski)
 * Add opera driver <bartosz sypniewski> (Bartosz Sypniewski)
