@@ -77,5 +77,4 @@ run_cmd(["git", "tag", "-a", f"{new_version}", "-m", f'"Release {new_version}"']
 logger.info("Pushing to repository")
 run_cmd(["git", "push", "-f", "origin", branch_name])
 run_cmd(["git", "push", "-f", "origin", f"{new_version}"])
-
 logger.info("Everything done. Create PR, review and merge it to create release")
