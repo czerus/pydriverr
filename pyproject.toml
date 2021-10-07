@@ -24,7 +24,7 @@ junit_family = "xunit2"
 
 [tool.poetry]
 name = "pydriver"
-version = "1.0.0-rc11"
+version = "1.0.0-rc12"
 description = "Download selenium WebDriver for Windows, Mac & Linux"
 authors = ["Krzysztof Czeronko <krzysztof.czeronko@gmail.com>", "Bartosz Sypniewski <bartosz.sypniewski@gmail.com>"]
 readme = "README.md"
