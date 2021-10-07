@@ -1,10 +1,10 @@
 import re
 from typing import Dict
 
-from pydriver.config import WebDriverType
-from pydriver.custom_logger import logger
-from pydriver.githubapi import GithubApi
-from pydriver.webdriver import WebDriver
+from ciyen.config import WebDriverType
+from ciyen.custom_logger import logger
+from ciyen.githubapi import GithubApi
+from ciyen.webdriver import WebDriver
 
 
 class OperaDriver(WebDriver):

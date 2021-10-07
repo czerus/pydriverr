@@ -1,6 +1,6 @@
-from pydriver.custom_logger import logger
-from pydriver.downloader import Downloader
-from pydriver.pydriver_types import ReleasesInfo
+from ciyen.ciyen_types import ReleasesInfo
+from ciyen.custom_logger import logger
+from ciyen.downloader import Downloader
 
 
 class GithubApi:

@@ -1,6 +1,6 @@
 [tool.isort]
 sections = "FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
-known_first_party = "pydriver"
+known_first_party = "ciyen"
 case_sensitive = true
 quiet = true
 # settings below to comply to black formatting rules
@@ -23,16 +23,16 @@ fail_under = 98.00
 junit_family = "xunit2"
 
 [tool.poetry]
-name = "pydriver"
+name = "ciyen"
 version = "1.0.0-rc14"
 description = "Download selenium WebDriver for Windows, Mac & Linux"
 authors = ["Krzysztof Czeronko <krzysztof.czeronko@gmail.com>", "Bartosz Sypniewski <bartosz.sypniewski@gmail.com>"]
 readme = "README.md"
-repository = "https://github.com/czerus/pydriver"
+repository = "https://github.com/czerus/ciyen"
 exclude = ["changelog.py", "lint.py", "release.py"]
 
 [tool.poetry.scripts]
-pydriver = 'pydriver.pydriver:cli_pydriver'
+ciyen = 'ciyen.ciyen:cli_ciyen'
 
 
 [tool.poetry.dependencies]

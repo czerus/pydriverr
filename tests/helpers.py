@@ -11,8 +11,8 @@ from typing import Dict, Tuple
 
 from configobj import ConfigObj
 
-from pydriver.config import WebDriverType
-from pydriver.pydriver_types import OptionalString, PytestTmpDir
+from ciyen.ciyen_types import OptionalString, PytestTmpDir
+from ciyen.config import WebDriverType
 
 DRIVERS_OTHER_FILES = {
     "chrome": [],
@@ -31,8 +31,8 @@ URLS = {
     "EDGE_API": "https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/?comp=list",
 }
 NOT_SUPPORTED = "not_supported"
-PYDRIVER_HOME = "pydriver_home"
-CACHE_DIR = ".pydriver_cache"
+PYDRIVER_HOME = "ciyen_home"
+CACHE_DIR = ".ciyen_cache"
 EXPECTED = {
     "CHROME": """    VERSION       OS     ARCHITECTURE
 --  ------------  -----  --------------
@@ -201,7 +201,7 @@ def create_arc_driver(
     :param driver_type: Type of WebDriver e.g. chrome, gecko, opera
     :param arc_file_name: Name of the archive file to be created with extension
     :param unarc_file_name: Name of the webdriver file
-    :param cache_dir: Name of the pydriver cache directory (default: None)
+    :param cache_dir: Name of the ciyen cache directory (default: None)
     :param version: Version of the installed WebDriver (default: None)
     :return: Checksum of created driver file (not compressed)
     """

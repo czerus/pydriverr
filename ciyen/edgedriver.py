@@ -1,10 +1,10 @@
 import re
 import xml.etree.ElementTree as ET
 
-from pydriver.config import WebDriverType
-from pydriver.custom_logger import logger
-from pydriver.downloader import Downloader
-from pydriver.webdriver import WebDriver
+from ciyen.config import WebDriverType
+from ciyen.custom_logger import logger
+from ciyen.downloader import Downloader
+from ciyen.webdriver import WebDriver
 
 
 class EdgeDriver(WebDriver):

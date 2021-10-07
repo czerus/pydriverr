@@ -1,4 +1,4 @@
-name: Pre Submit Verification Pydriver
+name: Pre Submit Verification Ciyen
 
 on:
   push:
@@ -46,4 +46,4 @@ jobs:
     - name: Test
       run: |
         source $HOME/.poetry/env
-        poetry run pytest tests/ --cov=pydriver --cov-report html --cov-report term -vv
+        poetry run pytest tests/ --cov=ciyen --cov-report html --cov-report term -vv

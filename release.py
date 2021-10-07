@@ -15,7 +15,7 @@ new_version = argv[1]
 issue_id = argv[2]
 branch_name = f"release/{new_version}"
 curr_version = (
-    run(["poetry", "version"], capture_output=True).stdout.decode("utf-8").replace("\n", "").replace("pydriver ", "")
+    run(["poetry", "version"], capture_output=True).stdout.decode("utf-8").replace("\n", "").replace("ciyen ", "")
 )
 curr_version_tag = f"v{curr_version}"
 if len(argv) == 4 and argv[3] == "all":

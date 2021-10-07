@@ -11,11 +11,11 @@ from typing import Tuple
 import tabulate
 from configobj import ConfigObj
 
-from pydriver.config import WebDriverType
-from pydriver.custom_logger import logger
-from pydriver.downloader import Downloader
-from pydriver.pydriver_types import Drivers, FnInstall, FnRemoteDriversList
-from pydriver.support import Support
+from ciyen.ciyen_types import Drivers, FnInstall, FnRemoteDriversList
+from ciyen.config import WebDriverType
+from ciyen.custom_logger import logger
+from ciyen.downloader import Downloader
+from ciyen.support import Support
 
 
 class WebDriver:
@@ -38,7 +38,7 @@ class WebDriver:
         self.drivers_home = Path(self._get_drivers_home())
         self._drivers_cfg = self.drivers_home / Path(".drivers.ini")
         self.drivers_state = ConfigObj(str(self._drivers_cfg))
-        self.cache_dir = Path.home() / Path(".pydriver_cache")
+        self.cache_dir = Path.home() / Path(".ciyen_cache")
         self.system_name = platform.uname().system
         self.system_arch = platform.uname().machine
         self._versions_info = {}
