@@ -64,4 +64,5 @@ jobs:
         PASSWORD: ${{ secrets.PYPI_PASSWORD}}
       run: |
         source $HOME/.poetry/env
+        poetry config repositories.test-pypi https://test.pypi.org/legacy/
         poetry publish -u "$USERNAME" -p "$PASSWORD" -n
