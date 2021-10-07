@@ -1,40 +1,58 @@
-# CHANGELOG
-
-All notable changes to this project will be documented in this file.
-This project adheres to [Semantic Versioning](http://semver.org/) and [Keep a Changelog](http://keepachangelog.com/).
-
-
-
-## Unreleased
----
-
-### New
-* Add logging to a file
-* Use cache and list of installed drivers to determine if there is a need for any action
-
-### Changes
-
-### Fixes
-
-### Breaks
-
-
-## 0.2.0 - (2020-02-25)
----
-
-### New
-* Add 'delete-driver' command to remove given or all installed drivers
-
-### Changes
-* Handle properly chrome driver for different OS and on different versions
-
-
-## 0.1.0 - (2020-02-18)
----
-
-### New
-* Add 'install-driver' for installing chrome drivers
-* Add 'installed-drivers' command for showing list of installed drivers with theirs meta
-* Add 'show-env' command for showing dirs storing drivers and their size
-
-
+# Changelog
+## Release: 1.0.0-rc10 - 07/10/2021
+### Features:
+* Add edge driver <bartosz sypniewski> (Bartosz Sypniewski)
+* Add opera driver <bartosz sypniewski> (Bartosz Sypniewski)
+* Add update command. <czerus> (czerus)
+### Chore:
+* Add custom_logger class as logger with spinner (#66) <pajhiwo> (pajhiwo)
+### Fixes:
+* Fix changelog and release <czerus> (czerus)
+* Fix duplicate logs by replacing standard logging with loguru. <czerus> (czerus)
+* Unitests for opera <bartosz sypniewski> (Bartosz Sypniewski)
+* Fix wrong file installed in multifiles driver archives <bartosz sypniewski> (Bartosz Sypniewski)
+* Fix sv workflow run for every branch <czerus> (czerus)
+* Fix systemexit when sysenv exists - test__get_drivers_home_nok <bartosz sypniewski> (Bartosz Sypniewski)
+### Documentation:
+* Align setup and usage instruction to work on windows <bartosz sypniewski> (Bartosz Sypniewski)
+### Refactoring:
+* Refactor tests and helper methods. <czerus> (czerus)
+* Remove unused argument ignore_files from config enum. <czerus> (czerus)
+* Remove empty pydriver_types added by mistake. <czerus> (czerus)
+* Merge pydriver_config into webdrivertype enum. <czerus> (czerus)
+* Add docstrings. <czerus> (czerus)
+* Replace chrome string with webdrivertype class. <czerus> (czerus)
+* Reorganize structure and rename some methods. <czerus> (czerus)
+* Move generalized update method to webdriver class. <czerus> (czerus)
+* Use inheritance instead of composition for webdriver class <czerus> (czerus)
+* Switch from fire to click. <czerus> (czerus)
+### Other changes:
+* release: introduce branch master-test for testing <czerus> (czerus)
+* release: Introduce release process <czerus> (czerus)
+* pydriver: Move config to separate module. <czerus> (czerus)
+* pydriver: Separate API from implementation, add geckodriver support. <czerus> (czerus)
+* README.md: Add first version of documentation. <czerus> (czerus)
+* github: Fix actions running for wrong branches. <czerus> (czerus)
+* github: Separate actions for SV and PSV <czerus> (czerus)
+* pydriver: Add unit tests and github Action. <czerus> (czerus)
+* pydriver: Format code using black and isort <czerus> (czerus)
+* lint.py: Add script to format and lint python codebase. <czerus> (czerus)
+* pydriver.py: Hide class variables in Fire help output. <czerus> (czerus)
+* pydriver.py: Add missing architecture strings that decides about arch. <czerus> (czerus)
+* pydriver.py: delete-driver doesn't fail if driver file is not present. <czerus> (czerus)
+* pydriver: Check if driver file update is necessary. <czerus> (czerus)
+* pydriver: Change log presented after downloading driver. <czerus> (czerus)
+* pydriver: Add more logging (also in debug mode). <czerus> (czerus)
+* pydriver: Make print-out of installed-drivers nice. <czerus> (czerus)
+* pydrive.ini: Make pydriver.ini file hidden <czerus> (czerus)
+* Release version: 0.2.0 <czerus> (czerus)
+* pydriver: Manage properly different types of chrome. <czerus> (czerus)
+* pydriver: Add 'delete-driver' to delete installed driver(s). <czerus> (czerus)
+* changelog: Introduce new tool to create and manage CHANGELOG. <czerus> (czerus)
+* pydriver: Introduce state save in drivers.ini file. <czerus> (czerus)
+* pydriver: Introduce local cache. <czerus> (czerus)
+* pydriver: Unzip downloaded chrome driver. <czerus> (czerus)
+* pydriver: Add downloading chrome with defaults. <czerus> (czerus)
+* pydriver: Add downloading chrome driver without unpacking <czerus> (czerus)
+* pydriver: Add listing chrome drivers. <czerus> (czerus)
+* initial commit <czerus> (czerus)
