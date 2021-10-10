@@ -145,3 +145,7 @@ $ ciyen show-env
    $ python3 -m pytest tests --cov=ciyen --cov-report html --cov-report term -vv
    ```
 6. Commit and push
+
+## Commits
+
+## Release process
