@@ -59,10 +59,17 @@ jobs:
         path: dist/ciyen-*.whl
     - name: Create named tag
       if: "!contains(github.event.head_commit.message, 'release: Create release *')"
-      run: |
-        source $HOME/.poetry/env
-        echo "$RELEASE=$(poetry version | cut -d' ' -f2)" >>  $GITHUB_ENV
-        git tag -a "$RELEASE" -m "Release $RELEASE"
+      uses: christophebedard/tag-version-commit@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        version_regex: 'release: Create release ([0-9]+\.[0-9]+\.[0-9]+(\-rc[0-9]+)?)'
+        check_entire_commit_message: true
+
+#      run: |
+#        source $HOME/.poetry/env
+#        poetry version
+#        echo "$RELEASE=$(poetry version | cut -d' ' -f2)" >>  $GITHUB_ENV
+#        git tag -a "$RELEASE" -m "Release $RELEASE"
     - name: Upload built app to pypi
       if: "!contains(github.event.head_commit.message, 'release: Create release *')"
       env:
