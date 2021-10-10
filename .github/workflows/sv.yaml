@@ -60,6 +60,7 @@ jobs:
     - name: Create named tag
       if: "!contains(github.event.head_commit.message, 'release: Create release *')"
       run: |
+        source $HOME/.poetry/env
         echo "$RELEASE=$(poetry version | cut -d' ' -f2)" >>  $GITHUB_ENV
         git tag -a "$RELEASE" -m "Release $RELEASE"
     - name: Upload built app to pypi
