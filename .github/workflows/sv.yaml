@@ -57,6 +57,11 @@ jobs:
       with:
         name: ciyen_app
         path: dist/ciyen-*.whl
+    - name: Create named tag
+      if: "!contains(github.event.head_commit.message, 'release: Create release *')"
+      run: |
+        echo "$RELEASE=$(poetry version | cut -d' ' -f2)" >>  $GITHUB_ENV
+        git tag -a "$RELEASE" -m "Release $RELEASE"
     - name: Upload built app to pypi
       if: "!contains(github.event.head_commit.message, 'release: Create release *')"
       env:

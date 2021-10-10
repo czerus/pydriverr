@@ -9,6 +9,8 @@ from typing import List
 import isort
 
 
+#TODO when --fix run 2 times because even after fix there may be errors to fix
+
 class Linter:
 
     _CODE_SRC = {"dirs": ["ciyen", "tests"], "files": ["lint.py", "changelog.py", "release.py"]}
