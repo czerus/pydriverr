@@ -71,11 +71,11 @@ run_cmd(["git", "add", "CHANGELOG.md", "pyproject.toml"])
 logger.info(f"Committing with message:\nrelease: Create release {new_version}\n\nFixes: #{issue_id}")
 run_cmd(["git", "commit", "-m", f"release: Create release {new_version}\n\nFixes: #{issue_id}"])
 
-#tag powinien sie stworzyc dopiero po mergu a nie teraz
-#logger.info(f"Creating annotated tag: Release {new_version}")
-#run_cmd(["git", "tag", "-a", f"{new_version}", "-m", f'"Release {new_version}"'])
+# tag powinien sie stworzyc dopiero po mergu a nie teraz
+# logger.info(f"Creating annotated tag: Release {new_version}")
+# run_cmd(["git", "tag", "-a", f"{new_version}", "-m", f'"Release {new_version}"'])
 
 logger.info("Pushing to repository")
 run_cmd(["git", "push", "-f", "origin", branch_name])
-#run_cmd(["git", "push", "-f", "origin", f"{new_version}"])
+# run_cmd(["git", "push", "-f", "origin", f"{new_version}"])
 logger.info("Everything done. Create PR, review and merge it to create release")
