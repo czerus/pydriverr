@@ -1,5 +1,5 @@
 # Changelog
-## Release: 1.0.0-rc18 - 12/10/2021
+## Release: 1.0.0-rc19 - 12/10/2021
 
 ---
 ### BREAKING CHANGES
@@ -13,6 +13,7 @@
 * Add opera driver <bartosz sypniewski> (Bartosz Sypniewski)
 * Add update command. <czerus> (czerus)
 ### Chore:
+* Add release to github <czerus> (czerus)
 * Create tag in workflow after merge <czerus> (czerus)
 * Add custom_logger class as logger with spinner (#66) <pajhiwo> (pajhiwo)
 ### Fixes:
