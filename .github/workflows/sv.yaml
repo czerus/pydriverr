@@ -64,11 +64,14 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         version_regex: 'release: Create release ([0-9]+\.[0-9]+\.[0-9]+.*)'
         check_entire_commit_message: true
-#      run: |
-#        source $HOME/.poetry/env
-#        poetry version
-#        echo "$RELEASE=$(poetry version | cut -d' ' -f2)" >>  $GITHUB_ENV
-#        git tag -a "$RELEASE" -m "Release $RELEASE"
+        annotated: true
+    - name: Create Github release
+      if: "!contains(github.event.head_commit.message, 'release: Create release *')"
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "dist/ciyen-.*.tar.gz,dist/ciyen-.*.whl"
+        bodyFile: "CHANGELOG.md"
+        token: ${{ secrets.GITHUB_TOKEN }}
     - name: Upload built app to pypi
       if: "!contains(github.event.head_commit.message, 'release: Create release *')"
       env:
