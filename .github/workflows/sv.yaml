@@ -64,7 +64,6 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         version_regex: 'release: Create release ([0-9]+\.[0-9]+\.[0-9]+(\-rc[0-9]+)?)'
         check_entire_commit_message: true
-
 #      run: |
 #        source $HOME/.poetry/env
 #        poetry version
