@@ -1,5 +1,5 @@
 # Changelog
-## Release: 1.0.0-rc17 - 10/10/2021
+## Release: 1.0.0-rc18 - 12/10/2021
 
 ---
 ### BREAKING CHANGES
@@ -16,6 +16,8 @@
 * Create tag in workflow after merge <czerus> (czerus)
 * Add custom_logger class as logger with spinner (#66) <pajhiwo> (pajhiwo)
 ### Fixes:
+* Fix version regexp <czerus> (czerus)
+* Fix missign poetry env <czerus> (czerus)
 * Fix missign poetry env <czerus> (czerus)
 * Fix formatting <czerus> (czerus)
 * Use token <czerus> (czerus)
