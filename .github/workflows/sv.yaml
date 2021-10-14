@@ -63,7 +63,6 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         version_regex: 'release: Create release ([0-9]+\.[0-9]+\.[0-9]+.*)'
-        check_entire_commit_message: true
         annotated: true
     - name: Create Github release
       if: "!contains(github.event.head_commit.message, 'release: Create release *')"
@@ -72,6 +71,7 @@ jobs:
         artifacts: "dist/ciyen-.*.tar.gz,dist/ciyen-.*.whl"
         bodyFile: "CHANGELOG.md"
         token: ${{ secrets.GITHUB_TOKEN }}
+#        tag:
     - name: Upload built app to pypi
       if: "!contains(github.event.head_commit.message, 'release: Create release *')"
       env:
