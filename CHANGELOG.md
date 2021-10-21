@@ -1,86 +1,9 @@
 # Changelog
-## Release: 1.0.0-rc20 - 14/10/2021
+## Release: 1.0.0-rc21 - 21/10/2021
+### Chore:
+* Next try to fix automatic release (czerus)
+* Check which tag is created (czerus)
 
----
-### BREAKING CHANGES
+## Release: 1.0.0-rc21 - 20/10/2021
 ### Chore:
-* Rename project to ciyen as the pydriver is taken <czerus> (czerus)
-### Fixes:
-* Fix publishing <czerus> (czerus)
----
-### Features:
-* Add edge driver <bartosz sypniewski> (Bartosz Sypniewski)
-* Add opera driver <bartosz sypniewski> (Bartosz Sypniewski)
-* Add update command. <czerus> (czerus)
-### Chore:
-* Check which tag is created <czerus> (czerus)
-* Add release to github <czerus> (czerus)
-* Create tag in workflow after merge <czerus> (czerus)
-* Add custom_logger class as logger with spinner (#66) <pajhiwo> (pajhiwo)
-### Fixes:
-* Fix version regexp <czerus> (czerus)
-* Fix missign poetry env <czerus> (czerus)
-* Fix missign poetry env <czerus> (czerus)
-* Fix formatting <czerus> (czerus)
-* Use token <czerus> (czerus)
-* Fix new sv yaml <czerus> (czerus)
-* Fix sv.yaml <czerus> (czerus)
-* Fix changelog and release <czerus> (czerus)
-* Fix changelog and release <czerus> (czerus)
-* Fix more more v <czerus> (czerus)
-* Remove more v from verision <czerus> (czerus)
-* Remove adding v to version <czerus> (czerus)
-* Change how actions and commit look <czerus> (czerus)
-* Fix condition 2 <czerus> (czerus)
-* Fix condition <czerus> (czerus)
-* Fix branch name <czerus> (czerus)
-* Fix duplicate logs by replacing standard logging with loguru. <czerus> (czerus)
-* Unitests for opera <bartosz sypniewski> (Bartosz Sypniewski)
-* Fix wrong file installed in multifiles driver archives <bartosz sypniewski> (Bartosz Sypniewski)
-* Fix sv workflow run for every branch <czerus> (czerus)
-* Fix systemexit when sysenv exists - test__get_drivers_home_nok <bartosz sypniewski> (Bartosz Sypniewski)
-### Documentation:
-* Align setup and usage instruction to work on windows <bartosz sypniewski> (Bartosz Sypniewski)
-### Refactoring:
-* Refactor tests and helper methods. <czerus> (czerus)
-* Remove unused argument ignore_files from config enum. <czerus> (czerus)
-* Remove empty pydriver_types added by mistake. <czerus> (czerus)
-* Merge pydriver_config into webdrivertype enum. <czerus> (czerus)
-* Add docstrings. <czerus> (czerus)
-* Replace chrome string with webdrivertype class. <czerus> (czerus)
-* Reorganize structure and rename some methods. <czerus> (czerus)
-* Move generalized update method to webdriver class. <czerus> (czerus)
-* Use inheritance instead of composition for webdriver class <czerus> (czerus)
-* Switch from fire to click. <czerus> (czerus)
-### Other changes:
-* release: introduce branch master-test for testing <czerus> (czerus)
-* release: Introduce release process <czerus> (czerus)
-* release: introduce branch master-test for testing <czerus> (czerus)
-* release: Introduce release process <czerus> (czerus)
-* pydriver: Move config to separate module. <czerus> (czerus)
-* pydriver: Separate API from implementation, add geckodriver support. <czerus> (czerus)
-* README.md: Add first version of documentation. <czerus> (czerus)
-* github: Fix actions running for wrong branches. <czerus> (czerus)
-* github: Separate actions for SV and PSV <czerus> (czerus)
-* pydriver: Add unit tests and github Action. <czerus> (czerus)
-* pydriver: Format code using black and isort <czerus> (czerus)
-* lint.py: Add script to format and lint python codebase. <czerus> (czerus)
-* pydriver.py: Hide class variables in Fire help output. <czerus> (czerus)
-* pydriver.py: Add missing architecture strings that decides about arch. <czerus> (czerus)
-* pydriver.py: delete-driver doesn't fail if driver file is not present. <czerus> (czerus)
-* pydriver: Check if driver file update is necessary. <czerus> (czerus)
-* pydriver: Change log presented after downloading driver. <czerus> (czerus)
-* pydriver: Add more logging (also in debug mode). <czerus> (czerus)
-* pydriver: Make print-out of installed-drivers nice. <czerus> (czerus)
-* pydrive.ini: Make pydriver.ini file hidden <czerus> (czerus)
-* Release version: 0.2.0 <czerus> (czerus)
-* pydriver: Manage properly different types of chrome. <czerus> (czerus)
-* pydriver: Add 'delete-driver' to delete installed driver(s). <czerus> (czerus)
-* changelog: Introduce new tool to create and manage CHANGELOG. <czerus> (czerus)
-* pydriver: Introduce state save in drivers.ini file. <czerus> (czerus)
-* pydriver: Introduce local cache. <czerus> (czerus)
-* pydriver: Unzip downloaded chrome driver. <czerus> (czerus)
-* pydriver: Add downloading chrome with defaults. <czerus> (czerus)
-* pydriver: Add downloading chrome driver without unpacking <czerus> (czerus)
-* pydriver: Add listing chrome drivers. <czerus> (czerus)
-* initial commit <czerus> (czerus)
+* Check which tag is created (czerus)

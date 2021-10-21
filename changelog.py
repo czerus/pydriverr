@@ -145,7 +145,6 @@ class Changelog:
             if not clean:
                 f.write(old_changelog)
 
-
         logger.info(f"Changelog written to {self._CHANGELOG_FILE}")
 
     @staticmethod
@@ -224,7 +223,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--to-tag", type=str, help="Take commits to this annotated tag or by default HEAD", default="HEAD"
     )
-    parser.add_argument("--clean", action='store_true', help="Do not append to file - overwrite it")
+    parser.add_argument("--clean", action="store_true", help="Do not append to file - overwrite it")
 
     args = parser.parse_args()
 
