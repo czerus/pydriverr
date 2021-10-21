@@ -64,6 +64,11 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         version_regex: 'release: Create release ([0-9]+\.[0-9]+\.[0-9]+.*)'
         annotated: true
+    - name: Set tag variable
+      id: tag_release
+      if: "!contains(github.event.head_commit.message, 'release: Create release *')"
+      run: |
+        echo "::set-output name=tag::$(git describe --abbrev=0)"
     - name: Create Github release
       if: "!contains(github.event.head_commit.message, 'release: Create release *')"
       uses: ncipollo/release-action@v1
@@ -71,7 +76,7 @@ jobs:
         artifacts: "dist/ciyen-.*.tar.gz,dist/ciyen-.*.whl"
         bodyFile: "CHANGELOG.md"
         token: ${{ secrets.GITHUB_TOKEN }}
-#        tag:
+        tag: "${{ steps.tag_release.outputs.tag }}"
     - name: Upload built app to pypi
       if: "!contains(github.event.head_commit.message, 'release: Create release *')"
       env:

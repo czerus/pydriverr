@@ -74,7 +74,7 @@ class Changelog:
     )
     _CHANGELOG_FILE = "CHANGELOG.md"
     _COMMIT_REGEXP = (
-        rf"(?P<prefix>{'|'.join(_PREFIXES_USE.keys())})?(?P<area>\(.*\))?(?P<breaking>\!)?:\s*(?P<topic>.*)"
+        rf"(?P<prefix>{'|'.join(_PREFIXES_USE.keys())})?(?P<area>\(.*\))?(?P<breaking>\!)?:\s*(?P<topic>.*)<.*>$"
     )
     _AUTHOR_REGEXP = r".*\<(?P<author>.*)\>$"
 
@@ -110,28 +110,41 @@ class Changelog:
         """
         match_obj = re.match(self._COMMIT_REGEXP, commit_raw_str)
         commit = Commit(raw=commit_raw_str, prefix="other")
+        match_author = re.match(self._AUTHOR_REGEXP, commit_raw_str)
+        commit.author = match_author.group("author")
         if match_obj:
             commit.prefix = match_obj.group("prefix") or "other"
             commit.area = match_obj.group("area")
             commit.topic = match_obj.group("topic").capitalize()
             commit.breaking = match_obj.group("breaking") is not None
-        match_author = re.match(self._AUTHOR_REGEXP, commit_raw_str)
-        commit.author = match_author.group("author")
+        else:
+            commit.topic = commit.raw.replace(f"<{commit.author}>", "")
+        topic = commit.topic.strip().capitalize()
+        commit.topic = topic[0:-1] if topic[-1] == "." else topic
+
         logger.debug(commit)
         return commit
 
-    def create_changelog(self, release: str) -> None:
+    def create_changelog(self, release: str, clean: bool) -> None:
         """
         Create CHANGELOG.md and add commits in structured way.
 
         :param release: Release name e.g v1.0.0
         :return: None
         """
-        with open(self._CHANGELOG_FILE, "w") as f:
+        operation_mode = "w" if clean else "w"
+        if not clean:
+            with open(self._CHANGELOG_FILE, "r") as f:
+                old_changelog = f.read().replace("# Changelog", "")
+
+        with open(self._CHANGELOG_FILE, operation_mode) as f:
             self._add_date_and_release(f, release)
             add_breaking_changes = _breaking_changes(self._add_commits)
             add_breaking_changes(f, self._commits.breaking)
             self._add_commits(f, self._commits.generic)
+            if not clean:
+                f.write(old_changelog)
+
         logger.info(f"Changelog written to {self._CHANGELOG_FILE}")
 
     @staticmethod
@@ -198,10 +211,7 @@ class Changelog:
         :return: None
         """
         for commit in commits_dict.get(prefix_type, []):
-            text = f"* {commit.topic} ({commit.author})\n"
-            if prefix_type == "other":
-                text = f"* {commit.raw} ({commit.author})\n"
-            f.write(text)
+            f.write(f"* {commit.topic} ({commit.author})\n")
 
 
 if __name__ == "__main__":
@@ -209,13 +219,14 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Simple Opinionated GIt LOg to changelog")
     parser.add_argument("version", type=str, help="Current release name i.e. v1.2.3")
-    parser.add_argument("--from-tag", type=str, help="take commits from this annotated tag", default=None)
+    parser.add_argument("--from-tag", type=str, help="Take commits from this annotated tag", default=None)
     parser.add_argument(
-        "--to-tag", type=str, help="take commits to this annotated tag or by default HEAD", default="HEAD"
+        "--to-tag", type=str, help="Take commits to this annotated tag or by default HEAD", default="HEAD"
     )
+    parser.add_argument("--clean", action="store_true", help="Do not append to file - overwrite it")
 
     args = parser.parse_args()
 
     chl = Changelog()
     chl.parse_commits_into_obj(args.from_tag, args.to_tag)
-    chl.create_changelog(args.version)
+    chl.create_changelog(args.version, args.clean)

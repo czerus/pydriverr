@@ -17,11 +17,11 @@ branch_name = f"release/{new_version}"
 curr_version = (
     run(["poetry", "version"], capture_output=True).stdout.decode("utf-8").replace("\n", "").replace("ciyen ", "")
 )
-curr_version_tag = f"v{curr_version}"
+
 if len(argv) == 4 and argv[3] == "all":
     changelog_cmd = ["python3", "changelog.py", new_version]
 else:
-    changelog_cmd = ["python3", "changelog.py", new_version, "--from-tag", curr_version_tag]
+    changelog_cmd = ["python3", "changelog.py", new_version, "--from-tag", curr_version]
 
 
 cmd_current_branch = "git rev-parse --abbrev-ref HEAD"
