@@ -64,6 +64,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         version_regex: 'release: Create release ([0-9]+\.[0-9]+\.[0-9]+.*)'
         annotated: true
+        check_entire_commit_message: true
     - name: Set tag variable
       id: tag_release
       if: "!contains(github.event.head_commit.message, 'release: Create release *')"
