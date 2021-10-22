@@ -1,4 +1,8 @@
 # Changelog
+## Release: 1.0.0-rc23 - 22/10/2021
+### Chore:
+* Use commit instead of a tag (czerus)
+
 ## Release: 1.0.0-rc22 - 22/10/2021
 
 ---
