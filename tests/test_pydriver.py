@@ -796,20 +796,14 @@ class TestInstall:
             f"Installed {driver_data.type}driver:\nVERSION: {driver_data.version}\nOS: {driver_data.os_}"
             f"\nARCHITECTURE: {driver_data.arch}" in caplog.messages
         )
-        assert (
-            get_ini_content(tmpdir).get(driver_data.type, {})
-            == IniFile()
-            .add_driver(
-                driver_type=driver_data.type,
-                filename=driver_data.filename,
-                version=driver_data.version,
-                os_=driver_data.os_,
-                arch=driver_data.arch,
-                checksum=checksum,
-            )
-            .to_dict()
-            .get(driver_data.type, {})
-        )
+        assert get_ini_content(tmpdir).get(driver_data.type, {}) == IniFile().add_driver(
+            driver_type=driver_data.type,
+            filename=driver_data.filename,
+            version=driver_data.version,
+            os_=driver_data.os_,
+            arch=driver_data.arch,
+            checksum=checksum,
+        ).to_dict().get(driver_data.type, {})
 
     @pytest.mark.parametrize(
         "driver_data, request_data",

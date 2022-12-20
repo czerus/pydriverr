@@ -1,10 +1,9 @@
-name: Submit Verification Pydriver
+name: Create release and push to pypi
 
 on:
-  pull_request:
-    branches:
-      - master
-    types: [closed]
+  push:
+    tags:
+      - "v*.*.*"
 
 jobs:
   build:
@@ -25,8 +24,13 @@ jobs:
         cache-dependency-path: 'poetry.lock'
     - name: Build wheel
       run: poetry build
-    - name: Upload built app to artifacts
-      uses: actions/upload-artifact@v3
+    - name: Create github release
+      uses: softprops/action-gh-release@v1
       with:
-        name: pydriver
-        path: dist/pydriver-*.whl
+        files: dist/pydriver-*.whl
+        body_path: CHANGELOG.md
+    - name: Upload built app to pypi
+      env:
+        USERNAME: ${{ secrets.PYPI_USERNAME}}
+        PASSWORD: ${{ secrets.PYPI_PASSWORD}}
+      run: poetry publish -u "$USERNAME" -p "$PASSWORD" -n

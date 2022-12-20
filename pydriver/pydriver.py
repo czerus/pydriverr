@@ -212,7 +212,7 @@ def install(
     "--driver-type",
     multiple=True,
     type=click.Choice(WebDriverType.list()),
-    default="",
+    # default=(),
     help="Type of the WebDriver e.g. chrome, gecko",
 )
 def delete(driver_type: Drivers) -> None:
@@ -250,7 +250,7 @@ def delete(driver_type: Drivers) -> None:
     "--driver-type",
     multiple=True,
     type=click.Choice(WebDriverType.list()),
-    default="",
+    # default="",
     help="Type of the WebDriver e.g. chrome, gecko",
 )
 def update(driver_type: Drivers) -> None:
