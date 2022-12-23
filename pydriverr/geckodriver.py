@@ -1,10 +1,10 @@
 import re
 from typing import Dict
 
-from pydriver.config import WebDriverType
-from pydriver.custom_logger import logger
-from pydriver.githubapi import GithubApi
-from pydriver.webdriver import WebDriver
+from pydriverr.config import WebDriverType
+from pydriverr.custom_logger import logger
+from pydriverr.githubapi import GithubApi
+from pydriverr.webdriver import WebDriver
 
 
 class GeckoDriver(WebDriver):

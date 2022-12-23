@@ -27,7 +27,7 @@ jobs:
     - name: Create github release
       uses: softprops/action-gh-release@v1
       with:
-        files: dist/pydriver-*.whl
+        files: dist/pydriverr-*.whl
         body_path: CHANGELOG.md
     - name: Upload built app to pypi
       env:

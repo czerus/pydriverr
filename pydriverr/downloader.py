@@ -3,8 +3,8 @@ from pathlib import Path
 
 import requests
 
-from pydriver.custom_logger import logger
-from pydriver.support import Support
+from pydriverr.custom_logger import logger
+from pydriverr.support import Support
 
 
 class Downloader:

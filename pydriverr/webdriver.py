@@ -11,11 +11,11 @@ from typing import Tuple
 import tabulate
 from configobj import ConfigObj
 
-from pydriver.config import WebDriverType
-from pydriver.custom_logger import logger
-from pydriver.downloader import Downloader
-from pydriver.pydriver_types import Drivers, FnInstall, FnRemoteDriversList
-from pydriver.support import Support
+from pydriverr.config import WebDriverType
+from pydriverr.custom_logger import logger
+from pydriverr.downloader import Downloader
+from pydriverr.pydriver_types import Drivers, FnInstall, FnRemoteDriversList
+from pydriverr.support import Support
 
 
 class WebDriver:

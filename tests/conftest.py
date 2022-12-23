@@ -4,7 +4,7 @@ import platform
 import pytest
 from loguru import logger
 
-from pydriver import webdriver
+from pydriverr import webdriver
 from tests.helpers import CACHE_DIR, PYDRIVER_HOME, IniFile
 
 DRIVERS_CFG = (
