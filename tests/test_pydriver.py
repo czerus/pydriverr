@@ -2,8 +2,8 @@ import pytest
 import requests
 from click.testing import CliRunner
 
-from pydriver import pydriver
-from pydriver.pydriver import cli_pydriver
+from pydriverr import pydriverr
+from pydriverr.pydriverr import cli_pydriverr
 from tests.helpers import (
     CACHE_DIR,
     EXPECTED,
@@ -25,12 +25,12 @@ class TestShowEnv:
     def test_show_env_empty_cache_empty_install_dir(self, env_vars, caplog, tmpdir, test_dirs, mocker):
         """Size of cache and install dir is 0 bytes when there is nothing installed and nothing in cache"""
         runner = CliRunner()
-        pydriver.platform = mocker.Mock()
-        pydriver.platform.uname.return_value = PlatformUname()
-        result = runner.invoke(cli_pydriver, ["show-env"])
+        pydriverr.platform = mocker.Mock()
+        pydriverr.platform.uname.return_value = PlatformUname()
+        result = runner.invoke(cli_pydriverr, ["show-env"])
         assert result.exit_code == 0
         assert f"WebDrivers are installed in: {tmpdir.join(PYDRIVER_HOME)}, total size is: 0 bytes" in caplog.messages
-        assert f"PyDriver cache is in: {tmpdir.join(CACHE_DIR)}, total size is: 0 bytes" in caplog.messages
+        assert f"PyDriverr cache is in: {tmpdir.join(CACHE_DIR)}, total size is: 0 bytes" in caplog.messages
 
     def test_show_env_empty_with_files(self, env_vars, caplog, tmpdir, test_dirs, create_ini, mocker):
         """
@@ -38,12 +38,12 @@ class TestShowEnv:
         some drivers are installed and there is something in cache
         """
         runner = CliRunner()
-        pydriver.platform = mocker.Mock()
-        pydriver.platform.uname.return_value = PlatformUname()
-        mocker.patch("pydriver.support.humanfriendly.format_size").side_effect = ["365 bytes", "1.69 KB"]
-        result = runner.invoke(cli_pydriver, ["show-env"])
+        pydriverr.platform = mocker.Mock()
+        pydriverr.platform.uname.return_value = PlatformUname()
+        mocker.patch("pydriverr.support.humanfriendly.format_size").side_effect = ["365 bytes", "1.69 KB"]
+        result = runner.invoke(cli_pydriverr, ["show-env"])
         assert result.exit_code == 0
-        assert f"PyDriver cache is in: {tmpdir.join(CACHE_DIR)}, total size is: 1.69 KB" in caplog.messages
+        assert f"PyDriverr cache is in: {tmpdir.join(CACHE_DIR)}, total size is: 1.69 KB" in caplog.messages
         assert f"WebDrivers are installed in: {tmpdir.join(PYDRIVER_HOME)}, total size is: 365 bytes" in caplog.messages
 
 
@@ -51,9 +51,9 @@ class TestShowInstalled:
     def test_show_installed_empty_ini(self, env_vars, tmpdir, test_dirs, empty_ini, mocker, caplog):
         """Display message when ini file is empty - no drivers installed"""
         runner = CliRunner()
-        pydriver.platform = mocker.Mock()
-        pydriver.platform.uname.return_value = PlatformUname()
-        result = runner.invoke(cli_pydriver, ["show-installed"])
+        pydriverr.platform = mocker.Mock()
+        pydriverr.platform.uname.return_value = PlatformUname()
+        result = runner.invoke(cli_pydriverr, ["show-installed"])
         assert result.exit_code == 1
         assert result.exc_info[0] == SystemExit
         assert "No drivers installed" in caplog.messages
@@ -61,10 +61,10 @@ class TestShowInstalled:
     def test_show_installed_driver_home_does_not_exist(self, env_vars, tmpdir, mocker, caplog):
         """Display message when directory configured in PYDRIVE_HOME env variable does not exist"""
         runner = CliRunner()
-        pydriver.platform = mocker.Mock()
-        pydriver.platform.uname.return_value = PlatformUname()
-        mocker.patch("pydriver.support.Path.mkdir")
-        result = runner.invoke(cli_pydriver, ["show-installed"])
+        pydriverr.platform = mocker.Mock()
+        pydriverr.platform.uname.return_value = PlatformUname()
+        mocker.patch("pydriverr.support.Path.mkdir")
+        result = runner.invoke(cli_pydriverr, ["show-installed"])
         assert result.exit_code == 1
         assert result.exc_info[0] == SystemExit
         assert f"{tmpdir.join(PYDRIVER_HOME)} directory does not exist" in caplog.messages
@@ -78,9 +78,9 @@ class TestShowInstalled:
  2  opera          88.0.4324.104  win               32  operadriver.exe   c6847807558142bec4e1bcc70ffa2387
  3  edge           90.0.818.0     win               32  msedgedriver.exe  46920536a8723dc0a68dedc3bb0f0fba"""
         runner = CliRunner()
-        pydriver.platform = mocker.Mock()
-        pydriver.platform.uname.return_value = PlatformUname()
-        result = runner.invoke(cli_pydriver, ["show-installed"])
+        pydriverr.platform = mocker.Mock()
+        pydriverr.platform.uname.return_value = PlatformUname()
+        result = runner.invoke(cli_pydriverr, ["show-installed"])
         assert result.exit_code == 0
         assert expected in caplog.messages
 
@@ -108,14 +108,14 @@ class TestShowAvailable:
         """For every WebDriver type display table with all available versions of the driver"""
         runner = CliRunner()
         requests_mock.get(request_data["url"], **request_data["kwargs"])
-        result = runner.invoke(cli_pydriver, ["show-available", "-d", driver_data.type])
+        result = runner.invoke(cli_pydriverr, ["show-available", "-d", driver_data.type])
         assert result.exit_code == 0
         assert EXPECTED[driver_data.type.upper()] in caplog.messages
 
     def test_show_available_not_supported_driver(self, env_vars, caplog):
         """Display message when WebDriver is not supported"""
         runner = CliRunner()
-        result = runner.invoke(cli_pydriver, ["show-available", "-d", NOT_SUPPORTED])
+        result = runner.invoke(cli_pydriverr, ["show-available", "-d", NOT_SUPPORTED])
         assert result.exit_code == 2
         assert result.exc_info[0] == SystemExit
 
@@ -123,7 +123,7 @@ class TestShowAvailable:
         """Display message when there is a network unavailability"""
         runner = CliRunner()
         requests_mock.get(URLS["CHROME"], exc=requests.exceptions.ConnectTimeout)
-        result = runner.invoke(cli_pydriver, ["show-available", "-d", "chrome"])
+        result = runner.invoke(cli_pydriverr, ["show-available", "-d", "chrome"])
         assert result.exc_info[0] == SystemExit
         assert result.exit_code == 1
         assert "Connection error" in caplog.messages
@@ -132,7 +132,7 @@ class TestShowAvailable:
         """Display message when the page with list of available drivers does not exist"""
         runner = CliRunner()
         requests_mock.get(URLS["CHROME"], status_code=404)
-        result = runner.invoke(cli_pydriver, ["show-available", "-d", "chrome"])
+        result = runner.invoke(cli_pydriverr, ["show-available", "-d", "chrome"])
         assert result.exc_info[0] == SystemExit
         assert result.exit_code == 1
         assert f"Cannot download file {URLS['CHROME']}" in caplog.messages
@@ -142,7 +142,7 @@ class TestDelete:
     def test_delete_no_drivers_installed(self, tmpdir, env_vars, caplog):
         """Display message when there are no drivers installed"""
         runner = CliRunner()
-        result = runner.invoke(cli_pydriver, ["delete", "-d", "chrome"])
+        result = runner.invoke(cli_pydriverr, ["delete", "-d", "chrome"])
         assert result.exit_code == 1
         assert result.exc_info[0] == SystemExit
         assert "No drivers installed" in caplog.messages
@@ -150,7 +150,7 @@ class TestDelete:
     def test_delete_driver_not_installed(self, tmpdir, test_dirs, env_vars, caplog, empty_ini):
         """Display message when trying to delete driver that is not installed"""
         runner = CliRunner()
-        result = runner.invoke(cli_pydriver, ["delete", "-d", "chrome"])
+        result = runner.invoke(cli_pydriverr, ["delete", "-d", "chrome"])
         assert result.exit_code == 0
         assert "Driver: chrome is not installed" in caplog.messages
 
@@ -167,7 +167,7 @@ class TestDelete:
         """When deleting single installed driver display proper message, remove driver's file and update ini"""
         runner = CliRunner()
         create_unarc_driver(tmpdir.join(PYDRIVER_HOME), driver_data.filename)
-        result = runner.invoke(cli_pydriver, ["delete"])
+        result = runner.invoke(cli_pydriverr, ["delete"])
         assert result.exit_code == 0
         assert f"Driver {driver_data.type} removed from ini" in caplog.messages
         assert f"Driver file deleted: {driver_data.filename}" in caplog.messages
@@ -180,7 +180,7 @@ class TestDelete:
         all_drivers = {"chrome": "chromedriver.exe", "gecko": "geckodriver.exe", "opera": "operadriver.exe"}
         for driver_type, driver_file_name in all_drivers.items():
             create_unarc_driver(tmpdir.join(PYDRIVER_HOME), driver_file_name)
-        result = runner.invoke(cli_pydriver, ["delete"])
+        result = runner.invoke(cli_pydriverr, ["delete"])
         assert result.exit_code == 0
         for driver_type, driver_file_name in all_drivers.items():
             assert f"Driver {driver_type} removed from ini" in caplog.messages
@@ -194,7 +194,7 @@ class TestDelete:
         should be updated. May happen when one deletes file manually
         """
         runner = CliRunner()
-        result = runner.invoke(cli_pydriver, ["delete", "-d", "chrome"])
+        result = runner.invoke(cli_pydriverr, ["delete", "-d", "chrome"])
         assert result.exit_code == 0
         assert "Driver chrome removed from ini" in caplog.messages
         assert "Driver file not found: chromedriver.exe" in caplog.messages
@@ -232,10 +232,10 @@ class TestDelete:
 
 class TestInstall:
     def test_install_not_supported_driver(self, env_vars, caplog):
-        """Pydriver exits with 2 exit code when requested WebDriver type is not supported"""
+        """Pydriverr exits with 2 exit code when requested WebDriver type is not supported"""
         runner = CliRunner()
         result = runner.invoke(
-            cli_pydriver, ["install", "-d", NOT_SUPPORTED, "-v", "71.0.3578.33", "-o", "win", "-a", "32"]
+            cli_pydriverr, ["install", "-d", NOT_SUPPORTED, "-v", "71.0.3578.33", "-o", "win", "-a", "32"]
         )
         assert result.exit_code == 2
         assert result.exc_info[0] == SystemExit
@@ -407,7 +407,7 @@ class TestInstall:
         )
         runner = CliRunner()
         result = runner.invoke(
-            cli_pydriver,
+            cli_pydriverr,
             ["install", "-d", driver_data.type, "-o", driver_data.os_, "-a", driver_data.arch],
         )
         assert result.exit_code == 0
@@ -459,13 +459,13 @@ class TestInstall:
     )
     def test_install_invalid_os(self, driver_data, request_data, tmpdir, test_dirs, env_vars, caplog, requests_mock):
         """
-        Pydriver exits with 1 exit code and display message when operating system requested for given WebDriver type
+        Pydriverr exits with 1 exit code and display message when operating system requested for given WebDriver type
         is not supported
         """
         runner = CliRunner()
         requests_mock.get(request_data["url"], **request_data["kwargs"])
         result = runner.invoke(
-            cli_pydriver,
+            cli_pydriverr,
             ["install", "-d", driver_data.type, "-v", driver_data.version, "-o", NOT_SUPPORTED, "-a", "32"],
         )
         assert result.exit_code == 1
@@ -496,11 +496,11 @@ class TestInstall:
     def test_install_invalid_version(
         self, driver_data, request_data, tmpdir, test_dirs, env_vars, caplog, requests_mock
     ):
-        """Pydriver exits with 1 exit code and display message when version of requested WebDriver doesn't exist"""
+        """Pydriverr exits with 1 exit code and display message when version of requested WebDriver doesn't exist"""
         runner = CliRunner()
         requests_mock.get(request_data["url"], **request_data["kwargs"])
         result = runner.invoke(
-            cli_pydriver, ["install", "-d", driver_data.type, "-v", driver_data.version, "-o", "win", "-a", "32"]
+            cli_pydriverr, ["install", "-d", driver_data.type, "-v", driver_data.version, "-o", "win", "-a", "32"]
         )
         assert result.exit_code == 1
         assert result.exc_info[0] == SystemExit
@@ -529,13 +529,13 @@ class TestInstall:
     )
     def test_install_invalid_arch(self, driver_data, request_data, tmpdir, test_dirs, env_vars, caplog, requests_mock):
         """
-        Pydriver exits with 1 exit code and display message when operating system requested for given WebDriver type
+        Pydriverr exits with 1 exit code and display message when operating system requested for given WebDriver type
         is not supported
         """
         runner = CliRunner()
         requests_mock.get(request_data["url"], **request_data["kwargs"])
         result = runner.invoke(
-            cli_pydriver,
+            cli_pydriverr,
             ["install", "-d", driver_data.type, "-v", driver_data.version, "-o", "win", "-a", NOT_SUPPORTED],
         )
         assert result.exit_code == 1
@@ -570,7 +570,7 @@ class TestInstall:
         runner = CliRunner()
         requests_mock.get(request_data["url"], **request_data["kwargs"])
         result = runner.invoke(
-            cli_pydriver, ["install", "-d", driver_data.type, "-v", driver_data.version, "-o", "win", "-a", "32"]
+            cli_pydriverr, ["install", "-d", driver_data.type, "-v", driver_data.version, "-o", "win", "-a", "32"]
         )
         assert result.exit_code == 0
         assert "Requested driver already installed" in caplog.messages
@@ -774,7 +774,7 @@ class TestInstall:
             content=content,
         )
         result = runner.invoke(
-            cli_pydriver,
+            cli_pydriverr,
             [
                 "install",
                 "-d",
@@ -941,7 +941,7 @@ class TestInstall:
             tmpdir, driver_data.type, driver_data.arc_filename, driver_data.filename, version=driver_data.version
         )
         result = runner.invoke(
-            cli_pydriver,
+            cli_pydriverr,
             [
                 "install",
                 "-d",
@@ -983,7 +983,7 @@ class TestClearCache:
     def test_clear_cache(self, env_vars, caplog, test_dirs, tmpdir):
         """Display message after removing whole cache directory"""
         runner = CliRunner()
-        result = runner.invoke(cli_pydriver, ["clear-cache"])
+        result = runner.invoke(cli_pydriverr, ["clear-cache"])
         assert result.exit_code == 0
         assert f"Removing cache directory: {tmpdir.join(CACHE_DIR)}" in caplog.messages
 
@@ -1084,7 +1084,7 @@ class TestUpdate:
             content=content,
         )
         create_unarc_driver(tmpdir.join(PYDRIVER_HOME), driver_data.filename)
-        result = runner.invoke(cli_pydriver, ["update", "-d", driver_data.type])
+        result = runner.invoke(cli_pydriverr, ["update", "-d", driver_data.type])
         assert result.exit_code == 0
         assert f"Updating {driver_data.type}driver" in caplog.messages
         assert f"Updated {driver_data.type}driver: {driver_data.version} -> {new_version}" in caplog.messages
@@ -1174,7 +1174,7 @@ class TestUpdate:
             checksum=checksum,
         ).write(tmpdir)
         requests_mock.get(request_data["url"], **request_data["kwargs"])
-        result = runner.invoke(cli_pydriver, ["update", "-d", driver_data.type])
+        result = runner.invoke(cli_pydriverr, ["update", "-d", driver_data.type])
         assert result.exit_code == 0
         assert f"Updating {driver_data.type}driver" in caplog.messages
         assert (
@@ -1195,7 +1195,7 @@ class TestUpdate:
     def test_update_driver_not_in_ini(self, driver_data, tmpdir, test_dirs, env_vars, caplog, empty_ini):
         """Update WebDriver that is not installed"""
         runner = CliRunner()
-        result = runner.invoke(cli_pydriver, ["update", "-d", driver_data.type])
+        result = runner.invoke(cli_pydriverr, ["update", "-d", driver_data.type])
         assert result.exit_code == 0
         assert f"Updating {driver_data.type}driver" in caplog.messages
         assert f"Driver {driver_data.type}driver is not installed" in caplog.messages
@@ -1228,7 +1228,7 @@ class TestUpdate:
             checksum="abc1",
         ).write(tmpdir)
         runner = CliRunner()
-        result = runner.invoke(cli_pydriver, ["update", "-d", driver_data.type])
+        result = runner.invoke(cli_pydriverr, ["update", "-d", driver_data.type])
         assert result.exit_code == 0
         assert f"Updating {driver_data.type}driver" in caplog.messages
         assert "Corrupted .ini file" in caplog.messages
@@ -1244,6 +1244,6 @@ class TestUpdate:
     ):
         """Update all drivers but there are no drivers installed"""
         runner = CliRunner()
-        result = runner.invoke(cli_pydriver, ["update"])
+        result = runner.invoke(cli_pydriverr, ["update"])
         assert result.exit_code == 0
         assert "No drivers installed" in caplog.messages

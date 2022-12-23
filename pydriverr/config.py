@@ -49,7 +49,7 @@ LOGGING_CONF = {
     "handlers": [
         {"sink": sys.stdout, "format": "{message}", "level": 20},
         {
-            "sink": os.path.join(tempfile.gettempdir(), "pydriver.log"),
+            "sink": os.path.join(tempfile.gettempdir(), "pydriverr.log"),
             "serialize": False,
             "rotation": "5MB",
             "compression": "zip",

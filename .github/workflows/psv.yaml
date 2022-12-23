@@ -1,4 +1,4 @@
-name: Pre Submit Verification Pydriver
+name: Pre Submit Verification Pydriverr
 
 on:
   push:
@@ -29,4 +29,4 @@ jobs:
     - name: Test
       run: |
         cd tests
-        poetry run pytest --cov=pydriver --cov-report html --cov-report term -vv
+        poetry run pytest --cov=pydriverr --cov-report html --cov-report term -vv

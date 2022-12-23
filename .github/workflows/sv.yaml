@@ -1,4 +1,4 @@
-name: Submit Verification Pydriver
+name: Submit Verification Pydriverr
 
 on:
   pull_request:
@@ -28,5 +28,5 @@ jobs:
     - name: Upload built app to artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: pydriver
-        path: dist/pydriver-*.whl
+        name: pydriverr
+        path: dist/pydriverr-*.whl

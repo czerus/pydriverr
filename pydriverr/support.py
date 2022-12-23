@@ -5,8 +5,8 @@ from typing import List
 
 import humanfriendly
 
-from pydriver.custom_logger import logger
-from pydriver.pydriver_types import Messages
+from pydriverr.custom_logger import logger
+from pydriverr.pydriver_types import Messages
 
 
 class Support:

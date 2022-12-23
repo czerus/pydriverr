@@ -1,5 +1,5 @@
 # Introduction
-`pydriver` is python module allowing management of the webdrivers for selenium.
+`pydriverr` is python module allowing management of the webdrivers for selenium.
 
 # Installation
 1. Currently only installation from git is supported, refer to "Development" chapter for details.
@@ -13,13 +13,13 @@
    ```
 
 # Usage
-Installed module provides `pydriver` command which allows performing following actions:
+Installed module provides `pydriverr` command which allows performing following actions:
 * list installed webdrivers
 * list available webdrivers versions
 * install webdrivers
 * remove locally installed webdrivers
 * update installed webdrivers
-* manage pydriver`s environment
+* manage pydriverr`s environment
 
 Following webdriver types are supported:
 * chrome
@@ -28,12 +28,12 @@ Following webdriver types are supported:
 
 In order see list of available commands:
 ```bash
-$ pydriver --help
+$ pydriverr --help
 ```
 
 In order to get description and parameters list of given command:
 ```bash
-$ pydriver command --help
+$ pydriverr command --help
 ```
 
 ## Commands
@@ -41,33 +41,33 @@ $ pydriver command --help
 Download certain version of given WebDriver type
 
 ```bash
-# Install newest chrome WebDriver for OS and arch on which pydriver is run:
-$ pydriver install -d chrome
+# Install newest chrome WebDriver for OS and arch on which pydriverr is run:
+$ pydriverr install -d chrome
 
-# Install given chrome Webdriver version for OS and arch on which pydriver is run:
-$ pydriver install -d chrome -v 89.0.4389.23
+# Install given chrome Webdriver version for OS and arch on which pydriverr is run:
+$ pydriverr install -d chrome -v 89.0.4389.23
 
 # Install newest gecko WebDriver for given OS but the arch is taken from current OS:
-$ pydriver install -d gecko -o linux
+$ pydriverr install -d gecko -o linux
 
 # Install given gecko WebDriver version for given OS and arch, no matter the current OS
-$ pydriver install -d gecko -v 0.28.0 -o linux -a 64
+$ pydriverr install -d gecko -v 0.28.0 -o linux -a 64
 
 # Install newest gecko WebDriver for current OS and 64 bit arch
-$ pydriver install -d gecko -a 64
+$ pydriverr install -d gecko -a 64
 ```
 
 ### update
 Update given WebDriver or all installed WebDrivers
 ```bash
 # Update chrome WebDriver:
-$ pydriver update -d chrome
+$ pydriverr update -d chrome
 
 # Update chrome and gecko WebDrivers:
-$ pydriver update -d chrome -d gecko
+$ pydriverr update -d chrome -d gecko
 
 # Update all installed WebDrivers:
-$ pydriver update
+$ pydriverr update
 ```
 
 ### delete
@@ -75,21 +75,21 @@ Delete given WebDriver or all installed WebDrivers
 
 ```bash
 # Remove installed chrome WebDriver:
-$ pydriver delete -d chrome
+$ pydriverr delete -d chrome
 
 # Remove installed chrome and gecko WebDrivers:
-$ pydriver delete -d chrome -d gecko
+$ pydriverr delete -d chrome -d gecko
 
 # Remove all installed WebDrivers:
-$ pydriver delete
+$ pydriverr delete
 ```
 
 ### clear-cache
 Delete cache directory. Cache directory grows while new drivers are downloaded.
 
 ```bash
-# Delete cache directory, it will be recreated on next pydriver run
-$ pydrive clear-cache
+# Delete cache directory, it will be recreated on next pydriverr run
+$ pydriverr clear-cache
 ```
 
 ### show-available
@@ -98,7 +98,7 @@ List of WebDrivers available to install - of given type
 ```bash
 # Show list of WebDrivers available to install for given driver type.
 # List contains versions and supported OS and architectures
-$ pydriver show-available -d chrome
+$ pydriverr show-available -d chrome
 ```
 
 ### show-installed
@@ -106,20 +106,20 @@ $ pydriver show-available -d chrome
 
 ```bash
 # Show all installed WebDrivers
-$ pydriver show-installed
+$ pydriverr show-installed
 ```
 
 ### show-env
 Show where WebDrivers are downloaded to and cache dir with usage data
 
 ```bash
-$ pydriver show-env
+$ pydriverr show-env
 ```
 
 # Development
 1. Clone the repository
     ```bash
-    $ git clone git@github.com:czerus/pydriver.git
+    $ git clone git@github.com:czerus/pydriverr.git
     ``` 
 
 2. Install [Poetry](https://python-poetry.org/docs/#installation)
@@ -142,6 +142,6 @@ $ pydriver show-env
     ```
 7. Run all tests with coverage:
    ```bash
-   $ python3 -m pytest tests --cov=pydriver --cov-report html --cov-report term -vv
+   $ python3 -m pytest tests --cov=pydriverr --cov-report html --cov-report term -vv
    ```
 6. Commit and push

@@ -1,6 +1,6 @@
 [tool.isort]
 sections = "FUTURE,STDLIB,THIRDPARTY,FIRSTPARTY,LOCALFOLDER"
-known_first_party = "pydriver"
+known_first_party = "pydriverr"
 case_sensitive = true
 quiet = true
 # settings below to comply to black formatting rules
@@ -23,16 +23,16 @@ fail_under = 98.00
 junit_family = "xunit2"
 
 [tool.poetry]
-name = "pydriver"
+name = "pydriverr"
 version = "0.3.0"
 description = "Download selenium WebDriver for Windows, Mac & Linux"
 authors = ["Krzysztof Czeronko <krzysztof.czeronko@gmail.com>", "Bartosz Sypniewski <bartosz.sypniewski@gmail.com>"]
 readme = "README.md"
-repository = "https://github.com/czerus/pydriver"
+repository = "https://github.com/czerus/pydriverr"
 exclude = ["lint.py"]
 
 [tool.poetry.scripts]
-pydriver = 'pydriver.pydriver:cli_pydriver'
+pydriverr = 'pydriverr.pydriverr:cli_pydriverr'
 
 
 [tool.poetry.dependencies]
