@@ -1,3 +1,5 @@
+import subprocess
+
 import pytest
 import requests
 from click.testing import CliRunner
@@ -8,15 +10,15 @@ from tests.helpers import (
     CACHE_DIR,
     EXPECTED,
     NOT_SUPPORTED,
-    PYDRIVER_HOME,
+    PYDRIVERR_HOME,
     URLS,
     DriverData,
     IniFile,
     PlatformUname,
-    create_arc_driver,
-    create_unarc_driver,
+    create_driver_archive,
+    create_extracted_driver,
     get_ini_content,
-    load_driver_arc_content,
+    load_driver_archive_content,
     load_response,
 )
 
@@ -26,10 +28,10 @@ class TestShowEnv:
         """Size of cache and install dir is 0 bytes when there is nothing installed and nothing in cache"""
         runner = CliRunner()
         pydriverr.platform = mocker.Mock()
-        pydriverr.platform.uname.return_value = PlatformUname()
+        pydriverr.platform.uname.return_value = PlatformUname("Windows", "AMD64")
         result = runner.invoke(cli_pydriverr, ["show-env"])
         assert result.exit_code == 0
-        assert f"WebDrivers are installed in: {tmpdir.join(PYDRIVER_HOME)}, total size is: 0 bytes" in caplog.messages
+        assert f"WebDrivers are installed in: {tmpdir.join(PYDRIVERR_HOME)}, total size is: 0 bytes" in caplog.messages
         assert f"PyDriverr cache is in: {tmpdir.join(CACHE_DIR)}, total size is: 0 bytes" in caplog.messages
 
     def test_show_env_empty_with_files(self, env_vars, caplog, tmpdir, test_dirs, create_ini, mocker):
@@ -39,12 +41,14 @@ class TestShowEnv:
         """
         runner = CliRunner()
         pydriverr.platform = mocker.Mock()
-        pydriverr.platform.uname.return_value = PlatformUname()
+        pydriverr.platform.uname.return_value = PlatformUname("Windows", "AMD64")
         mocker.patch("pydriverr.support.humanfriendly.format_size").side_effect = ["365 bytes", "1.69 KB"]
         result = runner.invoke(cli_pydriverr, ["show-env"])
         assert result.exit_code == 0
         assert f"PyDriverr cache is in: {tmpdir.join(CACHE_DIR)}, total size is: 1.69 KB" in caplog.messages
-        assert f"WebDrivers are installed in: {tmpdir.join(PYDRIVER_HOME)}, total size is: 365 bytes" in caplog.messages
+        assert (
+            f"WebDrivers are installed in: {tmpdir.join(PYDRIVERR_HOME)}, total size is: 365 bytes" in caplog.messages
+        )
 
 
 class TestShowInstalled:
@@ -52,7 +56,7 @@ class TestShowInstalled:
         """Display message when ini file is empty - no drivers installed"""
         runner = CliRunner()
         pydriverr.platform = mocker.Mock()
-        pydriverr.platform.uname.return_value = PlatformUname()
+        pydriverr.platform.uname.return_value = PlatformUname("Windows", "AMD64")
         result = runner.invoke(cli_pydriverr, ["show-installed"])
         assert result.exit_code == 1
         assert result.exc_info[0] == SystemExit
@@ -62,12 +66,12 @@ class TestShowInstalled:
         """Display message when directory configured in PYDRIVE_HOME env variable does not exist"""
         runner = CliRunner()
         pydriverr.platform = mocker.Mock()
-        pydriverr.platform.uname.return_value = PlatformUname()
+        pydriverr.platform.uname.return_value = PlatformUname("Windows", "AMD64")
         mocker.patch("pydriverr.support.Path.mkdir")
         result = runner.invoke(cli_pydriverr, ["show-installed"])
         assert result.exit_code == 1
         assert result.exc_info[0] == SystemExit
-        assert f"{tmpdir.join(PYDRIVER_HOME)} directory does not exist" in caplog.messages
+        assert f"{tmpdir.join(PYDRIVERR_HOME)} directory does not exist" in caplog.messages
 
     def test_show_installed_installed(self, env_vars, tmpdir, test_dirs, create_ini, caplog, mocker):
         """Display table with all installed drivers"""
@@ -79,7 +83,7 @@ class TestShowInstalled:
  3  edge           90.0.818.0     win               32  msedgedriver.exe  46920536a8723dc0a68dedc3bb0f0fba"""
         runner = CliRunner()
         pydriverr.platform = mocker.Mock()
-        pydriverr.platform.uname.return_value = PlatformUname()
+        pydriverr.platform.uname.return_value = PlatformUname("Windows", "AMD64")
         result = runner.invoke(cli_pydriverr, ["show-installed"])
         assert result.exit_code == 0
         assert expected in caplog.messages
@@ -166,7 +170,7 @@ class TestDelete:
     def test_delete_single_driver(self, driver_data, tmpdir, test_dirs, env_vars, caplog, create_ini):
         """When deleting single installed driver display proper message, remove driver's file and update ini"""
         runner = CliRunner()
-        create_unarc_driver(tmpdir.join(PYDRIVER_HOME), driver_data.filename)
+        create_extracted_driver(tmpdir.join(PYDRIVERR_HOME), driver_data.filename)
         result = runner.invoke(cli_pydriverr, ["delete"])
         assert result.exit_code == 0
         assert f"Driver {driver_data.type} removed from ini" in caplog.messages
@@ -179,7 +183,7 @@ class TestDelete:
         runner = CliRunner()
         all_drivers = {"chrome": "chromedriver.exe", "gecko": "geckodriver.exe", "opera": "operadriver.exe"}
         for driver_type, driver_file_name in all_drivers.items():
-            create_unarc_driver(tmpdir.join(PYDRIVER_HOME), driver_file_name)
+            create_extracted_driver(tmpdir.join(PYDRIVERR_HOME), driver_file_name)
         result = runner.invoke(cli_pydriverr, ["delete"])
         assert result.exit_code == 0
         for driver_type, driver_file_name in all_drivers.items():
@@ -239,6 +243,229 @@ class TestInstall:
         )
         assert result.exit_code == 2
         assert result.exc_info[0] == SystemExit
+
+    @pytest.mark.parametrize(
+        "driver_data, request_data",
+        [
+            (
+                DriverData(type="chrome", version="Google Chrome 81.0.4044.20"),
+                {"url": URLS["CHROME"], "kwargs": load_response("chrome")},
+            ),
+            (
+                DriverData(type="gecko", version="Mozilla Firefox 0.28.0"),
+                {"url": URLS["GECKO_API"], "kwargs": load_response("gecko")},
+            ),
+            (
+                DriverData(type="opera", version="88.0.4324.104"),
+                {"url": URLS["OPERA_API"], "kwargs": load_response("opera")},
+            ),
+            (
+                DriverData(type="edge", version="90.0.818.0"),
+                {"url": URLS["EDGE_API"], "kwargs": load_response("edge")},
+            ),
+        ],
+    )
+    def test_install_match_version_already_installed_exact_version(
+        self, driver_data, request_data, test_dirs, env_vars, caplog, create_ini, requests_mock, mocker
+    ):
+        runner = CliRunner()
+        requests_mock.get(request_data["url"], **request_data["kwargs"])
+        mocker.patch("pydriverr.webdriver.subprocess.run").side_effect = [
+            subprocess.CompletedProcess("args", 0, bytes(driver_data.version, "UTF-8"), "")
+        ]
+        mocker.patch("pydriverr.webdriver.platform.uname").return_value = PlatformUname("Windows", "32")
+        result = runner.invoke(cli_pydriverr, ["install", "-d", driver_data.type, "-m"])
+        assert result.exit_code == 0
+        assert "Required version of driver already installed" in caplog.messages
+
+    @pytest.mark.parametrize(
+        "driver_data, request_data",
+        [
+            (
+                DriverData(
+                    type="chrome",
+                    version="71.0.3578.33",
+                    os_="win",
+                    arch="64",
+                    filename="chromedriver.exe",
+                    arc_filename="chromedriver_win64.zip",
+                ),
+                [
+                    {"url": URLS["CHROME"] + "/{version}/{name}"},
+                    {"url": URLS["CHROME"], "kwargs": load_response("chrome")},
+                ],
+            ),
+            (
+                DriverData(
+                    type="gecko",
+                    version="0.28.0",
+                    os_="win",
+                    arch="64",
+                    filename="geckodriver.exe",
+                    arc_filename="geckodriver-v0.28.0-win64.zip",
+                ),
+                [
+                    {"url": URLS["GECKO"]},
+                    {"url": URLS["GECKO_API"], "kwargs": load_response("gecko")},
+                ],
+            ),
+            (
+                DriverData(
+                    type="opera",
+                    version="88.0.4324.104",
+                    os_="win",
+                    arch="64",
+                    filename="operadriver",
+                    arc_filename="operadriver_win64.zip",
+                ),
+                [
+                    {"url": URLS["OPERA"]},
+                    {"url": URLS["OPERA_API"], "kwargs": load_response("opera")},
+                ],
+            ),
+            (
+                DriverData(
+                    type="edge",
+                    version="90.0.818.0",
+                    os_="win",
+                    arch="64",
+                    filename="msedgedriver.exe",
+                    arc_filename="edgedriver_win64.zip",
+                ),
+                [
+                    {"url": URLS["EDGE"]},
+                    {"url": f"{URLS['EDGE_API']}", "kwargs": load_response("edge")},
+                ],
+            ),
+        ],
+    )
+    def test_install_match_version(
+        self, driver_data, request_data, tmpdir, test_dirs, env_vars, caplog, requests_mock, mocker
+    ):
+        requests_mock.get(request_data[1]["url"], **request_data[1]["kwargs"])
+        mocker.patch("pydriverr.webdriver.subprocess.run").side_effect = [
+            subprocess.CompletedProcess("args", 0, bytes(driver_data.version, "UTF-8"), "")
+        ]
+        mocker.patch("pydriverr.webdriver.platform.uname").return_value = PlatformUname("Windows", "AMD64")
+
+        content, checksum = load_driver_archive_content(
+            tmpdir, driver_data.type, driver_data.arc_filename, driver_data.filename
+        )
+        requests_mock.get(
+            request_data[0]["url"].format(version=driver_data.version, name=driver_data.arc_filename), content=content
+        )
+        runner = CliRunner()
+        result = runner.invoke(cli_pydriverr, ["install", "-d", driver_data.type, "-m"])
+        assert result.exit_code == 0
+        assert f"Found webdriver nearest version: {driver_data.version} for OS: {driver_data.os_}" in caplog.messages
+        assert (
+            f"I will download following version: {driver_data.version}, OS: {driver_data.os_}, "
+            f"arch: {driver_data.arch}" in caplog.messages
+        )
+        assert (
+            f"Installed {driver_data.type}driver:\nVERSION: {driver_data.version}\nOS: {driver_data.os_}"
+            f"\nARCHITECTURE: {driver_data.arch}" in caplog.messages
+        )
+
+    @pytest.mark.parametrize(
+        "driver_data, request_data",
+        [
+            (
+                DriverData(
+                    type="chrome",
+                    os_="win",
+                    arch="64",
+                    version="71.0.3578.33",
+                    filename="chromedriver.exe",
+                    arc_filename="chromedriver_win64.zip",
+                ),
+                [
+                    {"url": URLS["CHROME"], "kwargs": load_response("chrome")},
+                    {"url": URLS["CHROME"] + "/{version}/{name}"},
+                ],
+            ),
+            (
+                DriverData(
+                    type="gecko",
+                    os_="win",
+                    arch="64",
+                    version="0.16.1",
+                    filename="geckodriver.exe",
+                    arc_filename="geckodriver-v0.16.1-win64.zip",
+                ),
+                [
+                    {"url": URLS["GECKO_API"], "kwargs": load_response("gecko")},
+                    {"url": URLS["GECKO"]},
+                ],
+            ),
+            (
+                DriverData(
+                    type="opera",
+                    os_="win",
+                    arch="64",
+                    version="87.0.4280.67",
+                    filename="operadriver.exe",
+                    arc_filename="operadriver_win64.zip",
+                ),
+                [
+                    {"url": URLS["OPERA_API"], "kwargs": load_response("opera")},
+                    {"url": URLS["OPERA"]},
+                ],
+            ),
+            (
+                DriverData(
+                    type="edge",
+                    os_="win",
+                    arch="64",
+                    version="76.0.165.0",
+                    filename="msedgedriver.exe",
+                    arc_filename="edgedriver_win64.zip",
+                ),
+                [
+                    {"url": URLS["EDGE_API"], "kwargs": load_response("edge")},
+                    {"url": URLS["EDGE"]},
+                ],
+            ),
+        ],
+    )
+    def test_install_match_version_already_installed_not_exact(
+        self, driver_data, request_data, tmpdir, test_dirs, env_vars, caplog, create_ini, requests_mock, mocker
+    ):
+        """ """
+        runner = CliRunner()
+        content, checksum = load_driver_archive_content(
+            tmpdir, driver_data.type, driver_data.arc_filename, driver_data.filename
+        )
+        create_extracted_driver(tmpdir.join(PYDRIVERR_HOME), driver_data.filename)
+        requests_mock.get(request_data[0]["url"], **request_data[0]["kwargs"])
+        requests_mock.get(
+            request_data[1]["url"].format(version=driver_data.version, name=driver_data.arc_filename),
+            content=content,
+        )
+        mocker.patch("pydriverr.webdriver.subprocess.run").side_effect = [
+            subprocess.CompletedProcess("args", 0, bytes(driver_data.version, "UTF-8"), "")
+        ]
+        mocker.patch("pydriverr.webdriver.platform.uname").return_value = PlatformUname("Windows", "AMD64")
+
+        result = runner.invoke(cli_pydriverr, ["install", "-d", driver_data.type, "-m"])
+        assert result.exit_code == 0
+        assert (
+            f"Requested version: {driver_data.version}, OS: {driver_data.os_}, arch: {driver_data.arch}"
+            in caplog.messages
+        )
+        assert f"Driver file deleted: {driver_data.filename}" in caplog.messages
+        assert (
+            f"Installed {driver_data.type}driver:\nVERSION: {driver_data.version}\nOS: {driver_data.os_}"
+            f"\nARCHITECTURE: {driver_data.arch}" in caplog.messages
+        )
+        assert get_ini_content(tmpdir).get(driver_data.type, {}) == IniFile().add_driver(
+            driver_type=driver_data.type,
+            filename=driver_data.filename,
+            version=driver_data.version,
+            os_=driver_data.os_,
+            arch=driver_data.arch,
+            checksum=checksum,
+        ).to_dict().get(driver_data.type, {})
 
     @pytest.mark.parametrize(
         "driver_data, request_data",
@@ -395,11 +622,11 @@ class TestInstall:
         requests_mock,
     ):
         """
-        Display message and update ini file when installation of newest available WebDriver is requested.
+        Display message and update ini file when installation of the newest available WebDriver is requested.
         No extra options given except driver type. Driver file is not available in cache.
         """
         requests_mock.get(request_data[1]["url"], **request_data[1]["kwargs"])
-        content, checksum = load_driver_arc_content(
+        content, checksum = load_driver_archive_content(
             tmpdir, driver_data.type, driver_data.arc_filename, driver_data.filename
         )
         requests_mock.get(
@@ -764,10 +991,10 @@ class TestInstall:
         WebDriver is requested
         """
         runner = CliRunner()
-        content, checksum = load_driver_arc_content(
+        content, checksum = load_driver_archive_content(
             tmpdir, driver_data.type, driver_data.arc_filename, driver_data.filename
         )
-        create_unarc_driver(tmpdir.join(PYDRIVER_HOME), driver_data.filename)
+        create_extracted_driver(tmpdir.join(PYDRIVERR_HOME), driver_data.filename)
         requests_mock.get(request_data[0]["url"], **request_data[0]["kwargs"])
         requests_mock.get(
             request_data[1]["url"].format(version=driver_data.version, name=driver_data.arc_filename),
@@ -921,25 +1148,21 @@ class TestInstall:
         ],
     )
     def test_install_from_cache(
-        self,
-        driver_data,
-        request_data,
-        tmpdir,
-        test_dirs,
-        env_vars,
-        caplog,
-        requests_mock,
+        self, driver_data, request_data, tmpdir, test_dirs, env_vars, caplog, requests_mock, mocker
     ):
         """
-        Display message and update ini file when installation of newest available WebDriver is requested.
+        Display message and update ini file when installation of the newest available WebDriver is requested.
         No extra options given except driver type. Driver file is available in cache.
 
         """
         runner = CliRunner()
         requests_mock.get(request_data["url"], **request_data["kwargs"])
-        checksum = create_arc_driver(
+        mocker.patch("pydriverr.webdriver.platform.uname").return_value = PlatformUname("linux", "x86_64")
+
+        checksum = create_driver_archive(
             tmpdir, driver_data.type, driver_data.arc_filename, driver_data.filename, version=driver_data.version
         )
+
         result = runner.invoke(
             cli_pydriverr,
             [
@@ -1067,7 +1290,7 @@ class TestUpdate:
     ):
         """Update driver when only single WebDriver is present in ini file"""
         runner = CliRunner()
-        content, checksum = load_driver_arc_content(
+        content, checksum = load_driver_archive_content(
             tmpdir, driver_data.type, driver_data.arc_filename, driver_data.filename
         )
         IniFile().add_driver(
@@ -1083,7 +1306,7 @@ class TestUpdate:
             request_data[1]["url"].format(version=new_version, name=driver_data.arc_filename),
             content=content,
         )
-        create_unarc_driver(tmpdir.join(PYDRIVER_HOME), driver_data.filename)
+        create_extracted_driver(tmpdir.join(PYDRIVERR_HOME), driver_data.filename)
         result = runner.invoke(cli_pydriverr, ["update", "-d", driver_data.type])
         assert result.exit_code == 0
         assert f"Updating {driver_data.type}driver" in caplog.messages
@@ -1164,7 +1387,7 @@ class TestUpdate:
     ):
         """Update driver when there is single WebDriver in the ini file and there is no newer version"""
         runner = CliRunner()
-        checksum = create_unarc_driver(tmpdir.join(PYDRIVER_HOME), driver_data.filename)
+        checksum = create_extracted_driver(tmpdir.join(PYDRIVERR_HOME), driver_data.filename)
         IniFile().add_driver(
             driver_type=driver_data.type,
             filename=driver_data.filename,

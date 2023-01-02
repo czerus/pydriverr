@@ -8,23 +8,48 @@ from typing import List
 
 class WebDriverType(Enum):
 
-    GECKO = ("gecko", ["geckodriver", "wires"], "https://github.com/{owner}/{repo}")
+    GECKO = (
+        "gecko",
+        ["geckodriver", "wires"],
+        "https://github.com/{owner}/{repo}",
+        "firefox --version",
+    )
     CHROME = (
         "chrome",
         ["chromedriver"],
         "https://chromedriver.storage.googleapis.com",
+        "google-chrome --version",
     )
-    OPERA = ("opera", ["operadriver"], "https://github.com/{owner}/{repo}")
+    OPERA = (
+        "opera",
+        ["operadriver"],
+        "https://github.com/{owner}/{repo}",
+        "opera --version",
+    )
     EDGE = (
         "edge",
         ["msedgedriver", "edgewebdriver"],
         "https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver",
+        "reg query HKCU\\Software\\Microsoft\\Edge\\BLBeacon /v version",
     )
 
-    def __init__(self, drv_name: str, drv_file_names: List[str], url: str):
+    def __init__(self, drv_name: str, drv_file_names: List[str], url: str, cmd: str):
         self.drv_name = drv_name
         self.drv_file_names = drv_file_names
         self.url = url
+        self.cmd = cmd
+
+    @staticmethod
+    def cmd_for_drv_name(driver_type: str) -> str:
+        """
+        Return command that runs web browser for given driver name.
+
+        :param driver_type: Type of the WebDriver e.g. chrome, gecko
+        :return: Command as string
+        """
+        for drv in WebDriverType:
+            if drv.value[0] == driver_type:
+                return drv.value[-1]  # last is command
 
     @staticmethod
     def list() -> List[str]:

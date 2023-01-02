@@ -1,3 +1,5 @@
+from typing import Union
+
 import click
 
 from pydriverr.config import LOGGING_CONF, WebDriverType
@@ -21,8 +23,8 @@ logger.configure(**LOGGING_CONF)
 logger.debug("{:=>10}Starting new session{:=>10}".format("", ""))
 
 
-class _PyDriver:
-    """Provide main functionality of pydriverr by initing all the required subclasses in proper way"""
+class _PyDriverr:
+    """Provide main functionality of pydriverr by initializing all the required subclasses in proper way"""
 
     def __init__(self, driver_type: OptionalString = None):
         self.support = Support()
@@ -47,19 +49,19 @@ class _PyDriver:
         if not driver_type:
             self._webdriver_obj = WebDriver()
         elif driver_type == "chrome":
-            from pydriverr.chromedriver import ChromeDriver
+            from pydriverr.drivers.chromedriver import ChromeDriver
 
             self._webdriver_obj = ChromeDriver()
         elif driver_type == "gecko":
-            from pydriverr.geckodriver import GeckoDriver
+            from pydriverr.drivers.geckodriver import GeckoDriver
 
             self._webdriver_obj = GeckoDriver()
         elif driver_type == "opera":
-            from pydriverr.operadriver import OperaDriver
+            from pydriverr.drivers.operadriver import OperaDriver
 
             self._webdriver_obj = OperaDriver()
         elif driver_type == "edge":
-            from pydriverr.edgedriver import EdgeDriver
+            from pydriverr.drivers.edgedriver import EdgeDriver
 
             self._webdriver_obj = EdgeDriver()
 
@@ -87,7 +89,7 @@ def show_env() -> None:
         $ pydriverr show-env
     """
     with logger.spinner("Show environment"):
-        driver = _PyDriver()
+        driver = _PyDriverr()
         logger.info(
             f"WebDrivers are installed in: {driver.webdriver_obj.drivers_home}, total size is: "
             f"{driver.support.calculate_dir_size(driver.webdriver_obj.drivers_home)}"
@@ -110,7 +112,7 @@ def show_installed() -> None:
         $ pydriverr show-installed
     """
     with logger.spinner("Show installed drivers"):
-        driver = _PyDriver()
+        driver = _PyDriverr()
         if not driver.webdriver_obj.drivers_home.is_dir():
             driver.support.exit(f"{driver.webdriver_obj.drivers_home} directory does not exist")
         driver.webdriver_obj.print_drivers_from_ini()
@@ -139,7 +141,7 @@ def show_available(driver_type: str) -> None:
     :param driver_type: Type of the WebDriver e.g. chrome, gecko
     """
     with logger.spinner(f"Show available drivers for: [{driver_type}]"):
-        driver = _PyDriver(driver_type)
+        driver = _PyDriverr(driver_type)
         driver.webdriver_obj.get_remote_drivers_list()
         logger.info(f"Available {driver_type} drivers:")
         driver.webdriver_obj.print_remote_drivers()
@@ -160,7 +162,7 @@ def clear_cache() -> None:
         $ pydrive clear-cache
     """
     with logger.spinner("Clear cache"):
-        driver = _PyDriver()
+        driver = _PyDriverr()
         logger.info(f"Removing cache directory: {driver.webdriver_obj.cache_dir}")
         driver.webdriver_obj.clear_cache()
 
@@ -176,11 +178,15 @@ def clear_cache() -> None:
 @click.option("-v", "--version", default="", help="Version of requested WebDriver (default: newest)")
 @click.option("-o", "--os", "os_", default="", help="Operating System for requested WebDriver (default: current OS)")
 @click.option("-a", "--arch", default="", help="Architecture for requested WebDriver (default: current OS architecture")
+@click.option(
+    "-m", "--match-browser", is_flag=True, default=False, help="Match driver version, os and arch to installed browser"
+)
 def install(
     driver_type: str,
     version: Version = "",
     os_: str = "",
     arch: str = "",
+    match_browser: bool = False,
 ) -> None:
     """
     Download certain version of given WebDriver type
@@ -188,31 +194,62 @@ def install(
     Examples:
 
     \b
-        Install newest chrome WebDriver for OS and arch on which pydriverr is run:
+        Install the newest chrome WebDriver for OS and arch on which pydriverr is run:
         $ pydriverr install -d chrome
     \b
         Install given chrome Webdriver version for OS and arch on which pydriverr is run:
         $ pydriverr install -d chrome -v 89.0.4389.23
     \b
-        Install newest gecko WebDriver for given OS but the arch is taken from current OS:
+        Install the newest gecko WebDriver for given OS but the arch is taken from current OS:
         $ pydriverr install -d gecko -o linux
     \b
         Install given gecko WebDriver version for given OS and arch, no matter the current OS
         $ pydriverr install -d gecko -v 0.28.0 -o linux -a 64
     \b
-        Install newest gecko WebDriver for current OS and 64 bit arch
+        Install the newest gecko WebDriver for current OS and 64-bit arch
         $ pydriverr install -d gecko -a 64
+    \b
+        Install chrome driver matching version to installed Google Chrome browser (OS and arch matching current system)
+        $ pydriverr install -d chrome -m
 
     \f
     :param driver_type: Type of the WebDriver e.g. chrome, gecko
     :param version: Version of requested WebDriver (default: newest)
     :param os_: Operating System for requested WebDriver (default: current OS)
-    :param arch: Architecture for requested WebDriver (default: current OS architecture
+    :param arch: Architecture for requested WebDriver (default: current OS architecture)
+    :param match_browser: Should install the driver in the same version and for the same OS as web browser
     """
-
     with logger.spinner(f"Install driver for: [{driver_type}]"):
-        driver = _PyDriver(driver_type)
-        driver.webdriver_obj.install(str(version), str(os_), str(arch))
+        driver = _PyDriverr(driver_type)
+        if match_browser:
+            if driver_type == WebDriverType.EDGE.drv_name and driver.webdriver_obj.system_name != "win":
+                driver.support.exit(
+                    "Switch '--match-browser' is supported for Edge web driver only in Windows environment"
+                )
+            nearest_version = _get_nearest_driver_version_to_install(driver, driver_type)
+            if nearest_version is None:
+                logger.info("Required version of driver already installed")
+                return
+            else:
+                logger.info(
+                    f"Found webdriver nearest version: {nearest_version} for OS: {driver.webdriver_obj.system_name}"
+                )
+
+            if driver.webdriver_obj.drivers_state.get(driver_type.upper()):
+                driver.webdriver_obj.delete_drivers(tuple(driver_type))
+            driver.webdriver_obj.install(
+                nearest_version, driver.webdriver_obj.system_name, driver.webdriver_obj.system_arch
+            )
+        else:
+            driver.webdriver_obj.install(str(version), str(os_), str(arch))
+
+
+def _get_nearest_driver_version_to_install(driver: _PyDriverr, driver_type: str) -> Union[None, str]:
+    browser_version = driver.webdriver_obj.get_browser_version(driver_type, WebDriverType.cmd_for_drv_name(driver_type))
+    if not driver.webdriver_obj.should_install_matched(driver_type, browser_version):
+        return
+    driver.webdriver_obj.get_remote_drivers_list()
+    return driver.webdriver_obj.find_closest_matched_version(browser_version)
 
 
 @cli_pydriverr.command(short_help="Delete given WebDriver or all installed WebDrivers")
@@ -221,7 +258,6 @@ def install(
     "--driver-type",
     multiple=True,
     type=click.Choice(WebDriverType.list()),
-    # default=(),
     help="Type of the WebDriver e.g. chrome, gecko",
 )
 def delete(driver_type: Drivers) -> None:
@@ -249,7 +285,7 @@ def delete(driver_type: Drivers) -> None:
         spinner_msg = ", ".join(driver_type)
 
     with logger.spinner(f"Deleting driver for: [{spinner_msg}]"):
-        driver = _PyDriver()
+        driver = _PyDriverr()
         driver.webdriver_obj.delete_drivers(driver_type)
 
 
@@ -259,7 +295,6 @@ def delete(driver_type: Drivers) -> None:
     "--driver-type",
     multiple=True,
     type=click.Choice(WebDriverType.list()),
-    # default="",
     help="Type of the WebDriver e.g. chrome, gecko",
 )
 def update(driver_type: Drivers) -> None:
@@ -291,7 +326,7 @@ def update(driver_type: Drivers) -> None:
             driver_type = WebDriver().drivers_state.sections
         if driver_type:
             for installed_driver in driver_type:
-                driver = _PyDriver(installed_driver)
+                driver = _PyDriverr(installed_driver)
                 driver.webdriver_obj.update()
         else:
             logger.info("No drivers installed")

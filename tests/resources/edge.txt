@@ -101,6 +101,16 @@
             <ContentEncoding/>
             <ContentLanguage/>
         </Blob>
+                <Blob>
+            <Name>76.0.165.0/edgedriver_win64.zip</Name>
+            <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/76.0.165.0/edgedriver_win64.zip</Url>
+            <LastModified>Wed, 05 Jun 2019 17:12:52 GMT</LastModified>
+            <Etag>0x8D6E9D90B57BC50</Etag>
+            <Size>4612602</Size>
+            <ContentType>application/octet-stream</ContentType>
+            <ContentEncoding/>
+            <ContentLanguage/>
+        </Blob>
         <Blob>
             <Name>90.0.817.0/edgedriver_arm64.zip</Name>
             <Url>https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/90.0.817.0/edgedriver_arm64.zip</Url>

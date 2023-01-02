@@ -25,6 +25,7 @@ Following webdriver types are supported:
 * chrome
 * gecko
 * opera
+* edge
 
 In order see list of available commands:
 ```bash
@@ -55,6 +56,9 @@ $ pydriverr install -d gecko -v 0.28.0 -o linux -a 64
 
 # Install newest gecko WebDriver for current OS and 64 bit arch
 $ pydriverr install -d gecko -a 64
+
+# Install chrome driver matching version to installed Google Chrome browser (OS and arch matching current system)
+$ pydriverr install -d chrome -m
 ```
 
 ### update
@@ -123,7 +127,7 @@ $ pydriverr show-env
     ``` 
 
 2. Install [Poetry](https://python-poetry.org/docs/#installation)
-3. If you want to create vitrual env inside the same folder:
+3. If you want to create virtual env inside the same folder:
     ```bash
     $ poetry config virtualenvs.in-project true
     ```
@@ -144,4 +148,4 @@ $ pydriverr show-env
    ```bash
    $ python3 -m pytest tests --cov=pydriverr --cov-report html --cov-report term -vv
    ```
-6. Commit and push
+8. Commit and push
