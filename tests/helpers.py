@@ -31,8 +31,8 @@ URLS = {
     "EDGE_API": "https://msedgewebdriverstorage.blob.core.windows.net/edgewebdriver/?comp=list",
 }
 NOT_SUPPORTED = "not_supported"
-PYDRIVER_HOME = "pydriver_home"
-CACHE_DIR = ".pydriver_cache"
+PYDRIVERR_HOME = "pydriverr_home"
+CACHE_DIR = ".pydriverr_cache"
 EXPECTED = {
     "CHROME": """    VERSION       OS     ARCHITECTURE
 --  ------------  -----  --------------
@@ -43,7 +43,7 @@ EXPECTED = {
  4  2.1           mac    32
  5  71.0.3578.33  linux  64
  6  71.0.3578.33  mac    64
- 7  71.0.3578.33  win    32""",
+ 7  71.0.3578.33  win    32 64""",
     "GECKO": """    VERSION    OS     ARCHITECTURE
 --  ---------  -----  --------------
  0  0.4.2      linux  64
@@ -87,7 +87,7 @@ EXPECTED = {
  3  76.0.159.0   win    32 64
  4  76.0.162.0   mac    64
  5  76.0.162.0   win    32 64
- 6  76.0.165.0   win    86
+ 6  76.0.165.0   win    86 64
  7  90.0.817.0   arm    64
  8  90.0.817.0   mac    64
  9  90.0.817.0   win    32 64
@@ -101,7 +101,7 @@ EXPECTED = {
 class PlatformUname:
     """Provide system and machine strings for mocking `platform.uname` method"""
 
-    def __init__(self, system="Windows", machine="AMD64"):
+    def __init__(self, system, machine):
         self.system = system
         self.machine = machine
 
@@ -136,7 +136,7 @@ class IniFile:
         :param directory: Path to directory where .drivers.ini file will be created
         :return: None
         """
-        self.conf_obj.filename = os.path.join(directory, PYDRIVER_HOME, ".drivers.ini")
+        self.conf_obj.filename = os.path.join(directory, PYDRIVERR_HOME, ".drivers.ini")
         self.conf_obj.write()
 
     def to_dict(self) -> Dict:
@@ -160,7 +160,7 @@ class DriverData:
     arc_filename: str = field(default="")
 
 
-def create_unarc_driver(dst_dir: str, file_name: str) -> str:
+def create_extracted_driver(dst_dir: str, file_name: str) -> str:
     """
     Create driver file in given directory. Content of the file is 10 times `file_name`.
 
@@ -174,7 +174,7 @@ def create_unarc_driver(dst_dir: str, file_name: str) -> str:
     return hashlib.md5(content.encode()).hexdigest()
 
 
-def create_unarc_driver_other_files(dst_dir: str, driver_type: str) -> None:
+def create_extracted_driver_other_files(dst_dir: str, driver_type: str) -> None:
     """
     Create other drivers file that are present in driver arc file
 
@@ -183,10 +183,10 @@ def create_unarc_driver_other_files(dst_dir: str, driver_type: str) -> None:
     :return: None
     """
     for file_name in DRIVERS_OTHER_FILES[driver_type]:
-        create_unarc_driver(dst_dir, file_name)
+        create_extracted_driver(dst_dir, file_name)
 
 
-def create_arc_driver(
+def create_driver_archive(
     tmp_dir: str,
     driver_type: str,
     arc_file_name: str,
@@ -195,7 +195,7 @@ def create_arc_driver(
     version: OptionalString = None,
 ) -> str:
     """
-    Create archive of given type with driver file and other files (like checksums) inside.
+    Create archive of a given type with driver file and other files (like checksums) inside.
 
     :param tmp_dir: Path to pytest `tmpdir`
     :param driver_type: Type of WebDriver e.g. chrome, gecko, opera
@@ -215,8 +215,8 @@ def create_arc_driver(
         if driver_type == WebDriverType.OPERA.drv_name:
             nested_folder = os.path.join(tmp, os.path.splitext(arc_file_name)[0])
             os.makedirs(nested_folder)
-        checksum = create_unarc_driver(nested_folder, unarc_file_name)
-        create_unarc_driver_other_files(nested_folder, driver_type)
+        checksum = create_extracted_driver(nested_folder, unarc_file_name)
+        create_extracted_driver_other_files(nested_folder, driver_type)
 
         if arc_file_name.endswith(".tar.gz"):
             file_name = arc_file_name.replace(".tar.gz", "")
@@ -234,7 +234,7 @@ def create_arc_driver(
     return checksum
 
 
-def load_driver_arc_content(tmp_dir: str, driver_type: str, arc_file_name: str, unarc_file_name: str) -> Tuple:
+def load_driver_archive_content(tmp_dir: str, driver_type: str, arc_file_name: str, unarc_file_name: str) -> Tuple:
     """
     Create archive file and returns it as string and checksum of the created webdriver file
 
@@ -244,7 +244,7 @@ def load_driver_arc_content(tmp_dir: str, driver_type: str, arc_file_name: str, 
     :param unarc_file_name: Name of the webdriver file
     :return: Tuple with archive as string and checksum of the webdriver file
     """
-    checksum = create_arc_driver(tmp_dir, driver_type, arc_file_name, unarc_file_name, cache_dir=tmp_dir)
+    checksum = create_driver_archive(tmp_dir, driver_type, arc_file_name, unarc_file_name, cache_dir=tmp_dir)
     arc_driver_path = tmp_dir.join(arc_file_name)
     with open(arc_driver_path, "rb") as f:
         content = f.read()
@@ -258,7 +258,7 @@ def get_ini_content(tmp_dir: PytestTmpDir) -> Dict:
     :param tmp_dir: Path to pytest `tmpdir`
     :return: Content of `.drivers.ini` as dictionary
     """
-    return ConfigObj(tmp_dir.join(PYDRIVER_HOME, ".drivers.ini")).dict()
+    return ConfigObj(tmp_dir.join(PYDRIVERR_HOME, ".drivers.ini")).dict()
 
 
 def load_response(driver_type: str) -> Dict[str, str]:

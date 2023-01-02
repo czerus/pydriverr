@@ -5,7 +5,7 @@ import pytest
 from loguru import logger
 
 from pydriverr import webdriver
-from tests.helpers import CACHE_DIR, PYDRIVER_HOME, IniFile
+from tests.helpers import CACHE_DIR, PYDRIVERR_HOME, IniFile
 
 DRIVERS_CFG = (
     IniFile()
@@ -47,7 +47,7 @@ DRIVERS_CFG = (
 @pytest.fixture
 def test_dirs(tmpdir):
     """Create directories"""
-    tmpdir.mkdir(PYDRIVER_HOME)
+    tmpdir.mkdir(PYDRIVERR_HOME)
     tmpdir.mkdir(CACHE_DIR)
 
 
@@ -66,7 +66,7 @@ def empty_ini(tmpdir):
 @pytest.fixture
 def env_vars(monkeypatch, tmpdir):
     """Set DRIVERS_HOME environment variable for tests"""
-    monkeypatch.setenv(webdriver.WebDriver._ENV_NAME, str(tmpdir.join(PYDRIVER_HOME)))
+    monkeypatch.setenv(webdriver.WebDriver._ENV_NAME, str(tmpdir.join(PYDRIVERR_HOME)))
     system = platform.system().lower()
     if system == "windows":
         monkeypatch.setenv("USERPROFILE", str(tmpdir))

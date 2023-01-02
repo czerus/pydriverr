@@ -84,6 +84,14 @@
         <ETag>"9cbdcbbc72656b8d7aee740f06a86ac3"</ETag>
         <Size>3586505</Size>
     </Contents>
+        <Contents>
+        <Key>71.0.3578.33/chromedriver_win64.zip</Key>
+        <Generation>1541175326448038</Generation>
+        <MetaGeneration>1</MetaGeneration>
+        <LastModified>2018-11-02T16:15:26.447Z</LastModified>
+        <ETag>"9cbdcbbc72656b8d7aee740f06a86ac3"</ETag>
+        <Size>3586505</Size>
+    </Contents>
     <Contents>
         <Key>LATEST_RELEASE</Key>
         <Generation>1598559244169447</Generation>

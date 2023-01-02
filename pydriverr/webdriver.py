@@ -3,7 +3,11 @@ import os
 import platform
 import re
 import shutil
+import subprocess
+import sys
 import tempfile
+from collections import defaultdict
+from difflib import SequenceMatcher
 from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Tuple
@@ -38,7 +42,7 @@ class WebDriver:
         self.drivers_home = Path(self._get_drivers_home())
         self._drivers_cfg = self.drivers_home / Path(".drivers.ini")
         self.drivers_state = ConfigObj(str(self._drivers_cfg))
-        self.cache_dir = Path.home() / Path(".pydriver_cache")
+        self.cache_dir = Path.home() / Path(".pydriverr_cache")
         self.system_name = platform.uname().system
         self.system_arch = platform.uname().machine
         self._versions_info = {}
@@ -55,7 +59,7 @@ class WebDriver:
         # TODO: what about arm arch?
         # TODO: this check doesn't make sense at this point. There are 2 scenarios for installation:
         # * specify os and arch during install - then we do not care about current system architecture so way
-        #   fail the whole operation? This shouldn`t be run at the init of WebDriver class then
+        #   fail the whole operation? This should not be run at the init of WebDriver class then
         # * do not specify system or arch - then we want to install webdriver for current os and arch. Then we would
         #   also need to be able to discover ARM arch and system name.
         if system_arch in ["x86_64", "AMD64"]:
@@ -189,7 +193,7 @@ class WebDriver:
         """
         version_cache_dir = self.cache_dir / Path(driver_type) / Path(version)
         zipfile_path = version_cache_dir / file_name
-        if not (version_cache_dir / file_name).is_file():
+        if not zipfile_path.is_file():
             logger.info("Requested driver not found in cache")
             self.support.setup_dirs([version_cache_dir])
             self._downloader.dl_driver(url, zipfile_path)
@@ -262,9 +266,9 @@ class WebDriver:
         Validate that requested version, OS and architecture of given WebDriver is available to install.
 
         If the OS or architecture were not given then get current platform values. If version was not given
-        then get newest available version.
+        then get the newest available version.
 
-        :param driver_type: Type of the WebDriver e.g. chrome
+        :param driver_type: Type of the WebDriver e.g. Chrome
         :param version: Version of the installed WebDriver
         :param os_: OS for which WebDriver is installed
         :param arch: OS'es architecture for which WebDriver is installed
@@ -367,7 +371,7 @@ class WebDriver:
         self, driver_type: str, fn_get_remote_drivers_list: FnRemoteDriversList, fn_install: FnInstall
     ) -> None:
         """
-        Replace currently installed version of any WebDriver with newest available.
+        Replace currently installed version of any WebDriver with the newest available.
 
         Generic method that handles all available WebDrivers due to ability to get as parameter methods specific
         for given drivers.
@@ -398,9 +402,29 @@ class WebDriver:
             fn_install(remote_version, os_, arch)
             logger.info(f"Updated {driver_type}driver: {local_version} -> {remote_version}")
 
+    def should_install_matched(self, driver_type, browser_version: str) -> bool:
+        """
+        Asses whether webdriver should be installed. Yes, if is not installed or version, OS, and arch doesn't match
+        to installed version.
+
+        :param driver_type: Type of the WebDriver e.g. chrome, gecko
+        :param browser_version: Version of the web browser
+        :return: Whether driver should be installed as a boolean value
+        """
+        installed_driver = self.drivers_state.get(driver_type)
+        should_be_installed = True
+        if installed_driver:
+            if (
+                installed_driver["VERSION"] == browser_version
+                and installed_driver["OS"] == self.system_name
+                and installed_driver["ARCHITECTURE"] == self.system_arch
+            ):
+                should_be_installed = False
+        return should_be_installed
+
     def get_remote_drivers_list(self) -> None:
         """
-        Get available versions of WebDrivers together with supported OS and architece
+        Get available versions of WebDrivers together with supported OS and architecture
 
         :return: None
         """
@@ -419,8 +443,47 @@ class WebDriver:
 
     def update(self) -> None:
         """
-        Replace currently installed version of chromedriver with newest available
+        Replace currently installed version of chromedriver with the newest available
 
         :return: None
         """
         raise NotImplementedError
+
+    def get_browser_version(self, browser_type: str, browser_cmd: str) -> str:
+        """
+        Return version of the installed web browser.
+
+        :param browser_type: Type of web browser e.g. chrome, gecko
+        :param browser_cmd: Command calling the browser
+        :return: Version as a string
+        """
+        result = subprocess.run([browser_cmd], capture_output=True, shell=True)
+        if result.returncode != 0:
+            logger.info(f"{browser_type} not installed")
+            sys.exit(result.returncode)
+        browser_version = result.stdout.decode().strip().split(" ")[-1]
+        logger.info(f"{browser_type} installed in version: {browser_version} for OS: {self.system_name}")
+        return browser_version
+
+    def find_closest_matched_version(self, browser_version: str) -> str:
+        """
+        Return closest version of a given web driver to an installed browser version.
+
+        :param browser_version: Version of the web browser
+        :return: The closest version as string
+        """
+        matches = defaultdict(list)
+        for version, metadata in self._versions_info.items():
+            match = SequenceMatcher(None, version, browser_version).find_longest_match(
+                0, len(version), 0, len(browser_version)
+            )
+            matches[match.size].append({version: metadata.keys()})
+        sorted_by_best_matching_version = dict(sorted(matches.items(), reverse=True))
+
+        for _, versions_data in sorted_by_best_matching_version.items():
+            for version_data in versions_data:
+                version = list(version_data.keys())[0]
+                supported_os = list(version_data.values())[0]
+                if self._system_name in supported_os:
+                    return version
+        self.support.exit("Didn't find any webdriver version close to web browser version")
