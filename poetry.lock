@@ -539,12 +539,15 @@ python-versions = ">=3.7"
 widechars = ["wcwidth"]
 
 [[package]]
-name = "termcolor-whl"
-version = "1.1.2"
-description = "ANSI Color formatting for output in terminal, successor to termcolor (has wheels!)"
+name = "termcolor"
+version = "2.4.0"
+description = "ANSI color formatting for output in terminal"
 category = "main"
 optional = false
-python-versions = ">=2.6"
+python-versions = ">=3.8"
+
+[package.extras]
+tests = ["pytest", "pytest-cov"]
 
 [[package]]
 name = "tomli"
@@ -604,14 +607,14 @@ python-versions = "!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,>=2.7"
 
 [[package]]
 name = "yaspin"
-version = "2.2.0"
+version = "2.5.0"
 description = "Yet Another Terminal Spinner"
 category = "main"
 optional = false
-python-versions = ">=3.7.2,<4.0.0"
+python-versions = ">=3.8.1,<4.0.0"
 
 [package.dependencies]
-termcolor-whl = "1.1.2"
+termcolor = ">=2.3,<3.0"
 
 [metadata]
 lock-version = "1.1"
@@ -873,8 +876,9 @@ tabulate = [
     {file = "tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f"},
     {file = "tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c"},
 ]
-termcolor-whl = [
-    {file = "termcolor_whl-1.1.2-py2.py3-none-any.whl", hash = "sha256:3e7eda7348bb90ddea2d7a2171df65ed4a37adf62574fbd5459198410fdba881"},
+termcolor = [
+    {file = "termcolor-2.4.0-py3-none-any.whl", hash = "sha256:9297c0df9c99445c2412e832e882a7884038a25617c60cea2ad69488d4040d63"},
+    {file = "termcolor-2.4.0.tar.gz", hash = "sha256:aab9e56047c8ac41ed798fa36d892a37aca6b3e9159f3e0c24bc64a9b3ac7b7a"},
 ]
 tomli = [
     {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
@@ -973,6 +977,6 @@ wrapt = [
     {file = "wrapt-1.14.1.tar.gz", hash = "sha256:380a85cf89e0e69b7cfbe2ea9f765f004ff419f34194018a6827ac0e3edfed4d"},
 ]
 yaspin = [
-    {file = "yaspin-2.2.0-py3-none-any.whl", hash = "sha256:a6948034483cb263a467bef5a564eb35458e950fcade2cd7ad1d7d4339db4711"},
-    {file = "yaspin-2.2.0.tar.gz", hash = "sha256:febdf35f3e0e45845dc2caa79a18780f9ec7a85a37a9a2c0389b314ba82d8912"},
+    {file = "yaspin-2.5.0-py3-none-any.whl", hash = "sha256:58aaa19330b9eacf86241043342b4040ded75f170240276d963c570263cd8f53"},
+    {file = "yaspin-2.5.0.tar.gz", hash = "sha256:f96ab3b5c42e1eaa6af3193508082309d9dc43f6963339f9aa606003ee8d7e63"},
 ]
