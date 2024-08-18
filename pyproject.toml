@@ -47,7 +47,7 @@ loguru = "^0.6.0"
 yaspin = "^2.2.0"
 
 [tool.poetry.dev-dependencies]
-pylint = "^2.15.9"
+pylint = "^3.0.0"
 changelog-cli = "^0.7.1"
 isort = "^5.11.3"
 flake8 = "^6.0.0"
