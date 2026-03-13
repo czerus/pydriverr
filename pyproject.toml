@@ -58,7 +58,7 @@ pytest-cov = "^5.0.0"
 requests-mock = "^1.10.0"
 pytest-icdiff = "^0.6"
 pytest-clarity = "^1.0.1"
-flake8-black = "^0.3.6"
+flake8-black = "^0.4.0"
 
 [tool.poetry.group.dev.dependencies]
 describerr = "^0.2.1"
